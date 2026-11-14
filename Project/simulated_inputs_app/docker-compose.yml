@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  # 1. Bus de Mensajes (El corazón del Edge Computing)
+  redis-broker:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    restart: always
+    # Si este falla, todo falla. Por eso "restart: always" asegura reinicio autónomo.
+
+  # 2. Simulador (Representa los sensores de la nave)
+  sensor-simulator:
+    build: ./simulator
+    depends_on:
+      - redis-broker
+    environment:
+      - REDIS_HOST=redis-broker
+    restart: always
+
+  # 3. Motor de Inteligencia Artificial (LSTM e Isolation Forest)
+  ai-inference-engine:
+    build: ./ai_engine
+    depends_on:
+      - redis-broker
+    environment:
+      - REDIS_HOST=redis-broker
+    restart: always
+    # Este servicio escucha los datos. Si no hay datos del simulador, usa el LSTM para predecir.
+
+  # 4. Servidor API para el Dashboard (Frontend)
+  api-gateway:
+    build: ./api
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis-broker
+    restart: always
