@@ -1,6 +1,6 @@
 {
-  "schema_version": "1.0.0",
-  "run_id": "example-run",
+  "schema_version": "1.1.0",
+  "run_id": "demo-run",
   "scenario_id": "normal",
   "seed": 42,
   "generator_version": "example-1",

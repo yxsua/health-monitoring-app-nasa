@@ -1,9 +1,7 @@
 
-import pandas as pd
-import numpy as np
+import random
+from datetime import datetime, timezone
 import time
-
-from generador_datos import VARIABLES
 
 BASE = {
     "fc (lpm)": 70,
@@ -25,17 +23,19 @@ BASE = {
     "gravedad (g)": 0.1
 }
 
-def generar_medicion(escenario="normal"):
+def generar_medicion(escenario="normal", rng=None):
+
+    rng = rng or random
 
     datos = {}
 
-    for variable in VARIABLES:
+    for variable in BASE:
 
         valor = BASE[variable]
 
         desviacion = abs(valor * 0.03)
 
-        nuevo = np.random.normal(valor, desviacion)
+        nuevo = rng.gauss(valor, desviacion)
 
         if escenario == "precaucion":
             nuevo += desviacion * 3
@@ -47,7 +47,7 @@ def generar_medicion(escenario="normal"):
 
     datos["astronauta_id"] = "AST-001"
 
-    datos["timestamp"] = pd.Timestamp.now()
+    datos["timestamp"] = datetime.now(timezone.utc)
 
     return datos
 

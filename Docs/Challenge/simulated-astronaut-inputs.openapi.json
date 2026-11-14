@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Simulated Astronaut Inputs API",
-    "version": "1.0.0",
-    "description": "Proposed local-only retrieval contract derived from Simulated-Astronaut-Inputs-Contract.md and simulated-astronaut-inputs.schema.json. Clinical reference bands are not input validation bounds. Run creation and playback controls are out of scope. Authentication transport is intentionally unresolved; configure a local security scheme before protected deployment."
+    "version": "1.1.0",
+    "description": "Local simulation API. Each successful GET recalculates one observation. Process-local demo run demo-run supports A01 and AST-001. No pagination, history retrieval or authentication is implemented in the initial app. Bind to loopback until local authorization is implemented."
   },
   "servers": [
     {
@@ -14,7 +14,7 @@
   "tags": [
     {
       "name": "Simulation",
-      "description": "Read simulated observations from persisted local runs."
+      "description": "Generate local simulated observations on demand."
     }
   ],
   "paths": {
@@ -24,8 +24,8 @@
         "tags": [
           "Simulation"
         ],
-        "summary": "Retrieve simulated astronaut inputs",
-        "description": "Read-only retrieval of observations already produced by a local run. GET must not advance simulation time, create runs, generate random samples, or modify observations. Results sort by (observed_at, record_id) ascending. Pagination freezes the first-page snapshot, preventing omissions or duplicates during playback. Start a new request without a cursor to see newly generated observations. Unsupported query parameters return 422.\n\nAll 20 indicator keys are required. Valid means usable data, not healthy. Abnormal but well-formed values are returned without diagnoses or severity classifications. Missing values must not become zero. Retained readings preserve original observation timestamps. Freshness is evaluated against simulation_time using indicator-specific configuration.\n\nDaily aggregates use a completed UTC day [00:00:00Z, next 00:00:00Z). Implementations must enforce start < end <= metric observed_at <= record observed_at <= simulation_time, in addition to schema validation. All item astronaut_id values must match the path; response run_id must match the path. record_id is unique within a run. Radiation is a rate, not cumulative dose. Gravity and Earth latency are context; do not infer gravity from mission destination.\n\nAll operation dependencies, including authorization when enabled, run locally. Authentication transport remains a deployment decision, so no security scheme is asserted in this base contract. Deployments enabling authorization must add the selected local scheme and operation security requirement, restrict access to the astronaut, and use the documented 401/403 responses. Absence of a security scheme here is not an authorization bypass requirement.",
+        "summary": "Recalculate and retrieve simulated astronaut inputs",
+        "description": "Every successful call recalculates exactly one sample, advances the astronaut sequence and uses a new UTC observation time. GET is intentionally state-changing for this simulator: clients must not prefetch or automatically retry unless another sample is desired. All query parameters, including from, to, limit and cursor, are rejected with 422. Responses contain one item and next_cursor=null. State and random sequence reset on process restart; run a single worker. Daily aggregates are freshly simulated estimates for the previous completed UTC day on every call, not immutable historical measurements. All 20 fields and original unit/quality/domain constraints are preserved. Three unsupported indicators are explicitly missing. No model training or Earth connection is required. Values may fall outside reference health bands: normal denotes the generator mode, not a guarantee of healthy readings. The initial app has no authorization: bind to loopback only. Cross-field time ordering and complete UTC-day periods require application checks.",
         "parameters": [
           {
             "name": "run_id",
@@ -36,7 +36,7 @@
               "type": "string",
               "minLength": 1
             },
-            "example": "example-run"
+            "example": "demo-run"
           },
           {
             "name": "astronaut_id",
@@ -48,54 +48,11 @@
               "minLength": 1
             },
             "example": "A01"
-          },
-          {
-            "name": "from",
-            "in": "query",
-            "required": false,
-            "description": "Inclusive lower observation-time bound. UTC RFC 3339 timestamp ending in Z.",
-            "schema": {
-              "type": "string",
-              "format": "date-time",
-              "pattern": "Z$"
-            }
-          },
-          {
-            "name": "to",
-            "in": "query",
-            "required": false,
-            "description": "Exclusive upper observation-time bound. Must be later than from when both are supplied. UTC RFC 3339 timestamp ending in Z.",
-            "schema": {
-              "type": "string",
-              "format": "date-time",
-              "pattern": "Z$"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "description": "Maximum page size. Keep unchanged when using a continuation cursor.",
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 1000,
-              "default": 100
-            }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "required": false,
-            "description": "Opaque continuation token. Retains the first-page snapshot. Keep run, astronaut and all other query parameters identical. Omit to start a new snapshot.",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Ordered page of immutable simulated observations. An empty match returns items=[] and next_cursor=null.",
+            "description": "One freshly recalculated observation; no pagination.",
             "headers": {
               "Cache-Control": {
                 "description": "Responses must not be cached.",
@@ -112,10 +69,10 @@
                 },
                 "examples": {
                   "sample": {
-                    "summary": "Workbook values with synthetic run metadata and explicitly assigned daily periods.",
+                    "summary": "Illustrative values; actual values change on each successful request.",
                     "value": {
-                      "schema_version": "1.0.0",
-                      "run_id": "example-run",
+                      "schema_version": "1.1.0",
+                      "run_id": "demo-run",
                       "scenario_id": "normal",
                       "seed": 42,
                       "generator_version": "example-1",
@@ -302,106 +259,6 @@
                       ],
                       "next_cursor": null
                     }
-                  },
-                  "empty": {
-                    "summary": "Known run and astronaut with no matching observations.",
-                    "value": {
-                      "schema_version": "1.0.0",
-                      "run_id": "example-run",
-                      "scenario_id": "normal",
-                      "seed": 42,
-                      "generator_version": "example-1",
-                      "simulation_time": "2026-11-14T08:30:00Z",
-                      "items": [],
-                      "next_cursor": null
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid cursor or cursor parameters do not match.",
-            "headers": {
-              "Cache-Control": {
-                "description": "Responses must not be cached.",
-                "schema": {
-                  "type": "string",
-                  "const": "no-store"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error400"
-                },
-                "examples": {
-                  "invalid_cursor": {
-                    "value": {
-                      "error": {
-                        "code": "invalid_cursor",
-                        "message": "Invalid cursor or cursor parameters do not match."
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing or invalid local credentials when authorization is enabled.",
-            "headers": {
-              "Cache-Control": {
-                "description": "Responses must not be cached.",
-                "schema": {
-                  "type": "string",
-                  "const": "no-store"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error401"
-                },
-                "examples": {
-                  "unauthorized": {
-                    "value": {
-                      "error": {
-                        "code": "unauthorized",
-                        "message": "Missing or invalid local credentials when authorization is enabled."
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Caller cannot access the requested astronaut.",
-            "headers": {
-              "Cache-Control": {
-                "description": "Responses must not be cached.",
-                "schema": {
-                  "type": "string",
-                  "const": "no-store"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error403"
-                },
-                "examples": {
-                  "forbidden": {
-                    "value": {
-                      "error": {
-                        "code": "forbidden",
-                        "message": "Caller cannot access the requested astronaut."
-                      }
-                    }
                   }
                 }
               }
@@ -444,37 +301,8 @@
               }
             }
           },
-          "410": {
-            "description": "Snapshot expired; restart pagination without a cursor.",
-            "headers": {
-              "Cache-Control": {
-                "description": "Responses must not be cached.",
-                "schema": {
-                  "type": "string",
-                  "const": "no-store"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error410"
-                },
-                "examples": {
-                  "cursor_expired": {
-                    "value": {
-                      "error": {
-                        "code": "cursor_expired",
-                        "message": "Snapshot expired; restart pagination without a cursor."
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
           "422": {
-            "description": "Invalid timestamp, range, limit, or unsupported query parameter.",
+            "description": "Query parameters are not supported.",
             "headers": {
               "Cache-Control": {
                 "description": "Responses must not be cached.",
@@ -494,7 +322,7 @@
                     "value": {
                       "error": {
                         "code": "invalid_query",
-                        "message": "Invalid timestamp, range, limit, or unsupported query parameter."
+                        "message": "This endpoint accepts no query parameters; each call generates one sample."
                       }
                     }
                   }
@@ -503,7 +331,7 @@
             }
           },
           "503": {
-            "description": "Local simulation storage cannot be read.",
+            "description": "Could not produce contract-valid simulation inputs.",
             "headers": {
               "Cache-Control": {
                 "description": "Responses must not be cached.",
@@ -531,15 +359,14 @@
               }
             }
           }
-        },
-        "x-authentication-status": "Deployment-specific local authentication; transport not selected."
+        }
       }
     }
   },
   "components": {
     "schemas": {
       "InputsResponse": {
-        "title": "Simulated astronaut inputs response v1.0.0",
+        "title": "Simulated astronaut inputs response v1.1.0",
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -554,7 +381,7 @@
         ],
         "properties": {
           "schema_version": {
-            "const": "1.0.0"
+            "const": "1.1.0"
           },
           "run_id": {
             "type": "string",
@@ -583,17 +410,14 @@
           },
           "items": {
             "type": "array",
-            "maxItems": 1000,
+            "maxItems": 1,
             "items": {
               "$ref": "#/components/schemas/Observation"
-            }
+            },
+            "minItems": 1
           },
           "next_cursor": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "minLength": 1
+            "type": "null"
           }
         }
       },
@@ -2990,93 +2814,6 @@
           }
         }
       },
-      "Error400": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "error"
-        ],
-        "properties": {
-          "error": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "code",
-              "message"
-            ],
-            "properties": {
-              "code": {
-                "type": "string",
-                "enum": [
-                  "invalid_cursor"
-                ]
-              },
-              "message": {
-                "type": "string",
-                "minLength": 1
-              }
-            }
-          }
-        }
-      },
-      "Error401": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "error"
-        ],
-        "properties": {
-          "error": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "code",
-              "message"
-            ],
-            "properties": {
-              "code": {
-                "type": "string",
-                "enum": [
-                  "unauthorized"
-                ]
-              },
-              "message": {
-                "type": "string",
-                "minLength": 1
-              }
-            }
-          }
-        }
-      },
-      "Error403": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "error"
-        ],
-        "properties": {
-          "error": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "code",
-              "message"
-            ],
-            "properties": {
-              "code": {
-                "type": "string",
-                "enum": [
-                  "forbidden"
-                ]
-              },
-              "message": {
-                "type": "string",
-                "minLength": 1
-              }
-            }
-          }
-        }
-      },
       "Error404": {
         "type": "object",
         "additionalProperties": false,
@@ -3097,35 +2834,6 @@
                 "enum": [
                   "run_not_found",
                   "astronaut_not_found"
-                ]
-              },
-              "message": {
-                "type": "string",
-                "minLength": 1
-              }
-            }
-          }
-        }
-      },
-      "Error410": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "error"
-        ],
-        "properties": {
-          "error": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "code",
-              "message"
-            ],
-            "properties": {
-              "code": {
-                "type": "string",
-                "enum": [
-                  "cursor_expired"
                 ]
               },
               "message": {

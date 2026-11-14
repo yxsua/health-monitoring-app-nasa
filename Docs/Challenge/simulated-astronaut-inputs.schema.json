@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Simulated astronaut inputs response v1.0.0",
+  "title": "Simulated astronaut inputs response v1.1.0",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -15,7 +15,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "1.0.0"
+      "const": "1.1.0"
     },
     "run_id": {
       "type": "string",
@@ -44,17 +44,14 @@
     },
     "items": {
       "type": "array",
-      "maxItems": 1000,
+      "maxItems": 1,
       "items": {
         "$ref": "#/$defs/Observation"
-      }
+      },
+      "minItems": 1
     },
     "next_cursor": {
-      "type": [
-        "string",
-        "null"
-      ],
-      "minLength": 1
+      "type": "null"
     }
   },
   "$defs": {

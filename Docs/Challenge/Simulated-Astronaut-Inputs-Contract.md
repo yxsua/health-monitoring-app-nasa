@@ -1,8 +1,8 @@
 # Simulated Astronaut Inputs API Contract
 
-Version: 1.0.0 (proposed). Source: [modelo_DatosAstronautas.xlsx](modelo_DatosAstronautas.xlsx). Companion schema: [simulated-astronaut-inputs.schema.json](simulated-astronaut-inputs.schema.json). Sample response: [simulated-astronaut-inputs.example.json](simulated-astronaut-inputs.example.json).
+Version: 1.1.0 (proposed). Source: [modelo_DatosAstronautas.xlsx](modelo_DatosAstronautas.xlsx). Companion schema: [simulated-astronaut-inputs.schema.json](simulated-astronaut-inputs.schema.json). Sample response: [simulated-astronaut-inputs.example.json](simulated-astronaut-inputs.example.json).
 
-OpenAPI 3.1 contract: [simulated-astronaut-inputs.openapi.json](simulated-astronaut-inputs.openapi.json). This self-contained specification embeds the response schemas and examples, defines all parameters and error responses, and uses a same-origin server. Authentication transport remains deployment-specific, as described below; configure a local security scheme before protected deployment.
+OpenAPI 3.1 contract: [simulated-astronaut-inputs.openapi.json](simulated-astronaut-inputs.openapi.json). This self-contained specification embeds the response schemas and examples, defines all parameters and error responses, and uses a same-origin server. The initial app binds to loopback and has no authentication; add local authorization before exposing it to other users.
 
 The sample response preserves the workbook's numeric example values but adds illustrative run metadata and explicitly assigns the previous UTC day to daily aggregates. Those periods are synthetic example configuration, not information extracted from the workbook. Activity, fasting status, and HRV baseline remain unknown. The three indicators absent from the source example are missing.
 
@@ -17,37 +17,30 @@ The source explicitly labels its ranges as simulation references, not official c
 ## Endpoint
 
 ```http
-GET /api/v1/simulation/runs/{run_id}/astronauts/{astronaut_id}/inputs?limit=100
+GET /api/v1/simulation/runs/{run_id}/astronauts/{astronaut_id}/inputs
 Accept: application/json
 ```
 
-Returns an ordered page of immutable observations already produced by a local simulation run. GET does not advance simulation time, generate a new random sample, create a run, or modify stored observations. Run creation and playback controls are separate APIs outside this contract.
+Each successful GET recalculates exactly one observation using the existing app generator, advances the per-astronaut random sequence, and assigns a new UTC observation time. GET intentionally changes simulation state. Disable client prefetch and automatic retries unless another sample is wanted. Failed validation or unknown identifiers do not advance the sequence.
 
-| Parameter | Location | Type | Rules |
-| --- | --- | --- | --- |
-| `run_id` | path | string | Required, nonempty; identifies a persisted run and its fixed scenario configuration. |
-| `astronaut_id` | path | string | Required, nonempty; source example is `A01`. |
-| `from` | query | UTC RFC 3339 timestamp | Optional, inclusive lower observation-time bound. |
-| `to` | query | UTC RFC 3339 timestamp | Optional, exclusive upper bound; must be later than `from` when both supplied. |
-| `limit` | query | integer | Optional, default 100, minimum 1, maximum 1000. |
-| `cursor` | query | string | Optional opaque continuation token from the previous page. Keep all other query parameters identical. |
+Only the nonempty path parameters `run_id` and `astronaut_id` are accepted. The initial app configures `demo-run` with astronauts `A01` and `AST-001`. Unknown runs or astronauts return 404. All query parameters (including the previous `from`, `to`, `limit`, and `cursor`) return 422. There is no pagination or history retrieval. Every success returns one item and `next_cursor: null`.
 
-Results sort by `(observed_at, record_id)` ascending. The first page freezes a snapshot of matching records; cursors retain that snapshot so playback cannot cause omissions or duplicates during pagination. Start a new request without a cursor to see newly generated records. A known run/astronaut with no matching observations returns HTTP 200 with `items: []` and `next_cursor: null`.
+State is process-local and resets on restart. Run one worker. The seed and request sequence reproduce values; timestamps reflect actual request time. Independent astronaut streams prevent one astronaut's requests changing another's values. This prototype does not yet satisfy the broader requirement for persisted history across restarts.
 
-Local authorization must restrict access to the requested astronaut; no external identity service is required. Return `Content-Type: application/json` and `Cache-Control: no-store`. Authentication transport is a deployment decision; missing/invalid credentials return 401 and insufficient permission returns 403 when authorization is enabled.
+Return `Content-Type: application/json` and `Cache-Control: no-store`. Authentication is not implemented in the initial app; bind to loopback until local authorization is added. Earth connectivity and trained ML models are not needed for input generation.
 
 ## Response Envelope
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `schema_version` | string | Literal `1.0.0`. |
+| `schema_version` | string | Literal `1.1.0`. |
 | `run_id` | string | Requested run. |
 | `scenario_id` | enum | `normal`, `solar_event`, `high_co2`, `prolonged_isolation`. |
-| `seed` | integer | Persisted nonnegative random seed. |
+| `seed` | integer | Configured nonnegative random seed. |
 | `generator_version` | string | Simulator implementation/configuration version. |
-| `simulation_time` | UTC timestamp | Simulation clock at the page snapshot, not wall-clock response time. |
-| `items` | array | Observations matching the astronaut and filters. |
-| `next_cursor` | string or null | Next snapshot page, or null when exhausted. |
+| `simulation_time` | UTC timestamp | UTC time of the newly generated sample. |
+| `items` | array | Exactly one newly generated observation for the requested astronaut. |
+| `next_cursor` | null | Always null; pagination is not supported. |
 
 Each item requires `record_id`, `astronaut_id`, `observed_at`, `mission`, `source: "simulated"`, `context`, and the three metric groups. `record_id` is stable and unique within the run. `mission` preserves the source text (for example `Marte`) and is not an enum. Do not infer local gravity from mission destination: the source's Mars mission example has gravity `0`.
 
@@ -69,8 +62,8 @@ Every indicator key is present and contains:
 ```
 
 - `quality` is `valid`, `missing`, or `invalid`; it describes data usability, not health status. Valid measurements have a finite numeric value and an observation timestamp. Missing measurements use null value and timestamp. Invalid measurements use null value and may retain an observation timestamp; malformed raw values belong in diagnostic logs, not numeric API fields.
-- A record timestamp identifies the snapshot. A metric timestamp identifies when that metric was actually observed. Carrying a previous measurement forward must retain its original timestamp.
-- Daily aggregates require `period_start` and `period_end` when valid. Use a completed UTC day `[00:00:00Z, next 00:00:00Z)` in this proposed version. Missing or invalid measurements and instantaneous measurements use null periods. A future mission-day convention requires an explicit contract change.
+- A record timestamp identifies the generated sample. A metric timestamp identifies when that metric was actually observed. This endpoint recalculates all supported measurements on each call.
+- Daily aggregates are newly simulated estimates on every request, even for the same day; they are not immutable history. They require `period_start` and `period_end` when valid. Use a completed UTC day `[00:00:00Z, next 00:00:00Z)` in this proposed version. Missing or invalid measurements and instantaneous measurements use null periods. A future mission-day convention requires an explicit contract change.
 - The workbook does not specify aggregate periods or actual per-metric observation times. Imported example daily values cannot be represented as valid aggregates until a period is supplied; do not manufacture one from the row timestamp.
 - Consumers compute freshness using simulation time and configured indicator-specific staleness limits. The source's word “continuous” does not define a sampling interval or expiry time.
 - Never replace missing measurements with zero. Preserve valid zero gravity and zero activity durations.
@@ -150,13 +143,9 @@ All error responses use `{"error":{"code":"...","message":"..."}}`.
 
 | HTTP | Code | Meaning |
 | --- | --- | --- |
-| 400 | `invalid_cursor` | Cursor is malformed or its run, astronaut, or filters do not match. |
-| 401 | `unauthorized` | Missing or invalid local credentials. |
-| 403 | `forbidden` | Caller cannot access this astronaut. |
-| 404 | `run_not_found` / `astronaut_not_found` | Unknown run, or astronaut not configured in that run. |
-| 410 | `cursor_expired` | Snapshot no longer retained; restart pagination. |
-| 422 | `invalid_query` | Invalid timestamp, range, limit, or unsupported query parameter. |
-| 503 | `simulation_unavailable` | Local simulation storage cannot be read; do not substitute an empty success response. |
+| 404 | `run_not_found` / `astronaut_not_found` | Unknown run or astronaut. |
+| 422 | `invalid_query` | Query parameters are unsupported. |
+| 503 | `simulation_unavailable` | Could not produce contract-valid simulation inputs. |
 
 FastAPI implementations should normalize validation errors to this envelope. This document defines behavior independently of a framework's default error representation.
 
@@ -165,11 +154,11 @@ FastAPI implementations should normalize validation errors to this envelope. Thi
 1. All 20 mapped indicators are represented with exact units and explicit null/quality handling; none are silently omitted.
 2. Numeric examples round-trip without changing units or values. The example's three absent fields remain missing. Daily values require explicit periods before import as valid aggregates.
 3. An abnormal but well-formed input (for example CO2 of 5,500 ppm) is returned successfully, without an endpoint-generated diagnosis or severity.
-4. Repeating a request against unchanged run state returns identical observations; GET never advances the run.
-5. Pagination yields no duplicates or omissions despite subsequent simulation writes. Filters use inclusive `from` and exclusive `to`.
-6. Missing, stale, invalid, and zero values remain distinguishable. Carried readings retain their original observation times.
+4. Repeated successful requests recalculate values, produce unique records and increasing timestamps, and advance the per-astronaut sequence.
+5. Every success returns exactly one item and null cursor. All query parameters are rejected without advancing state.
+6. Missing, stale, invalid, and zero values remain distinguishable. All supported readings are recalculated.
 7. UTC timestamps, enum values, required keys, units, numeric domains, and period rules are validated. NaN and infinity are not serialized.
 8. Record and metric timestamps do not exceed snapshot simulation time; metric timestamps do not exceed record time; valid aggregate periods satisfy start < end <= metric observation time.
-9. API retrieval, authorization, and stored-run replay work with external network access disabled.
+9. Generation and schema validation work with external network access disabled.
 
-The companion JSON Schema validates response structure and local field constraints. Cross-field time ordering, query semantics, cursor behavior, authorization, and scenario determinism require implementation tests. This deliverable defines a contract; it does not implement the endpoint.
+The companion JSON Schema validates response structure and local field constraints. Cross-field time ordering and request-driven generation require implementation tests. The initial endpoint is implemented in `Project/simulated_inputs_app/api.py`. Only the normal generator mode is currently exposed; the other scenario identifiers remain reserved. Its original baselines are retained, so normal mode does not guarantee all reference bands are satisfied.
