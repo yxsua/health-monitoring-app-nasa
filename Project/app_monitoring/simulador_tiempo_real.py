@@ -1,47 +1,15 @@
 import pandas as pd
-import numpy as np
 import time
 
 from generador_datos import (
     VARIABLES,
-    BASE,
-    UMBRALES,
-    evaluar_variable,
-    generar_valor
+    SimuladorFisiologico,
+    INTERVALO_S,
+    DURACION_RAMPA_S
 )
 
 
-def generar_medicion(astronauta, variable_alerta=None, nivel=None):
-
-    rng = np.random.default_rng()
-
-    datos = {}
-
-    for variable in VARIABLES:
-
-        if variable == variable_alerta and nivel is not None:
-            estado = nivel
-        else:
-            estado = "NORMAL"
-
-        datos[variable] = generar_valor(
-            variable,
-            rng,
-            estado
-        )
-
-    datos["astronauta_id"] = astronauta["id"]
-    datos["nombre"] = astronauta["nombre"]
-    datos["timestamp"] = pd.Timestamp.now()
-
-    return datos
-
-
-def iniciar(astronauta):
-
-    print("\nASTRAHEALTH AI - MONITOREO")
-    print("Astronauta:", astronauta["nombre"])
-    print("Presiona Ctrl+C para detener.")
+def elegir_modo(simulador):
 
     print("\nModo de simulación:")
     print("1. Normal")
@@ -50,42 +18,71 @@ def iniciar(astronauta):
 
     opcion = input("Selecciona el modo: ").strip()
 
-    variable_alerta = None
-    nivel = None
+    if opcion not in ["2", "3"]:
+        return
 
-    if opcion in ["2", "3"]:
+    nivel = "PRECAUCION" if opcion == "2" else "ALARMA"
+
+    while True:
 
         print("\nVariables disponibles:")
 
         for i, variable in enumerate(VARIABLES):
             print(f"{i + 1}. {variable}")
 
-        seleccion = int(input("\nSelecciona variable: "))
+        try:
+            seleccion = int(input("\nSelecciona variable: "))
+        except ValueError:
+            print("Escribe un número.")
+            continue
 
         if seleccion < 1 or seleccion > len(VARIABLES):
             print("Selección inválida.")
+            continue
+
+        variable = VARIABLES[seleccion - 1]
+
+        if simulador.activar_alerta(variable, nivel):
+
+            print(
+                f"\n{variable} derivará de forma gradual hacia "
+                f"{nivel.lower()} (aprox. {DURACION_RAMPA_S} s)."
+            )
             return
 
-        variable_alerta = VARIABLES[seleccion - 1]
+        print(
+            f"'{variable}' no tiene zona de {nivel.lower()} definida. "
+            "Elige otra variable."
+        )
 
-        nivel = "PRECAUCION" if opcion == "2" else "ALARMA"
+
+def iniciar(astronauta, intervalo=INTERVALO_S):
+
+    print("\nASTRAHEALTH AI - MONITOREO")
+    print("Astronauta:", astronauta["nombre"])
+    print("Presiona Ctrl+C para detener.")
+
+    # Un solo simulador para toda la sesión: cada medición parte de la anterior.
+    simulador = SimuladorFisiologico()
+
+    elegir_modo(simulador)
 
     try:
 
         while True:
 
-            medicion = generar_medicion(
-                astronauta,
-                variable_alerta,
-                nivel
-            )
+            medicion = simulador.siguiente()
+
+            medicion["astronauta_id"] = astronauta["id"]
+            medicion["nombre"] = astronauta["nombre"]
+            medicion["timestamp"] = pd.Timestamp.now()
 
             print("\nNueva medición:")
             print(medicion)
 
             yield medicion
 
-            time.sleep(5)
+            time.sleep(intervalo)
 
     except KeyboardInterrupt:
 

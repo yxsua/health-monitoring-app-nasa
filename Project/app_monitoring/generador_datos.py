@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import sqlite3
+from collections import deque
 
 EXCEL = "modelo_DatosAstronautas.xlsx"
 DB = "astronautas.db"
@@ -40,6 +41,7 @@ UMBRALES = {
     "gravedad (g)": (0, 0.02, 0.05, 0.15, 0.20, 0.30)
 }
 
+# (media, desviación) alrededor de la cual oscila cada variable en estado normal.
 BASE = {
     "fc (lpm)": (70, 8),
     "pa_sis (mmHg)": (115, 7),
@@ -58,6 +60,89 @@ BASE = {
     "ruido (dBA)": (40, 3),
     "presión (kPa)": (101, 0.5),
     "gravedad (g)": (0.1, 0.005)
+}
+
+# ---------------------------------------------------------------------------
+# Continuidad temporal
+# ---------------------------------------------------------------------------
+
+INTERVALO_S = 5        # segundos entre mediciones
+VENTANA_S = 300        # ventana de control: 5 minutos
+VENTANA_PASOS = VENTANA_S // INTERVALO_S
+
+# Variación MÁXIMA permitida dentro de cualquier ventana de 5 minutos.
+# Ejemplo: temp_cabina = 2 -> en 5 minutos nunca se mueve más de 2 °C
+# (si está en 23, no puede pasar a 17: se queda dentro de ese margen).
+# Ajusta estos valores a tu gusto.
+TOLERANCIA_5MIN = {
+    "fc (lpm)": 5,
+    "pa_sis (mmHg)": 5,
+    "pa_dia (mmHg)": 4,
+    "spo2 (%)": 1,
+    "temp (°C)": 0.2,
+    "glucosa (mg/dL)": 5,
+    "hrv (ms)": 5,
+    "sueño (h)": 0.3,
+    "ánimo (1-5)": 0.3,
+    "ejercicio (min)": 5,
+    "radiación (mSv/día)": 0.05,
+    "co2 (ppm)": 100,
+    "temp_cabina (°C)": 2,
+    "humedad (%)": 3,
+    "ruido (dBA)": 3,
+    "presión (kPa)": 0.5,
+    "gravedad (g)": 0.005
+}
+
+# Límites físicos absolutos (nunca se sale de aquí, aunque sea una alarma).
+LIMITES_FISICOS = {
+    "fc (lpm)": (20, 220),
+    "pa_sis (mmHg)": (50, 260),
+    "pa_dia (mmHg)": (30, 160),
+    "spo2 (%)": (50, 100),
+    "temp (°C)": (30, 43),
+    "glucosa (mg/dL)": (20, 600),
+    "hrv (ms)": (1, 300),
+    "sueño (h)": (0, 24),
+    "ánimo (1-5)": (1, 5),
+    "ejercicio (min)": (0, 480),
+    "radiación (mSv/día)": (0, 10),
+    "co2 (ppm)": (300, 10000),
+    "temp_cabina (°C)": (0, 50),
+    "humedad (%)": (0, 100),
+    "ruido (dBA)": (0, 140),
+    "presión (kPa)": (50, 150),
+    "gravedad (g)": (0, 1)
+}
+
+# Tiempo en el que la variable "pasea" lentamente alrededor de su base.
+# Más grande = curvas más suaves y lentas.
+TAU_LENTO_S = 1800
+
+# Ruido de cada medición, como fracción de la tolerancia (muy pequeño = curvas suaves).
+FACTOR_RUIDO = 0.03
+
+# Tiempo que tarda una variable en llegar a precaución/alarma cuando tú la
+# provocas (y en regresar a su base). Es una rampa suave, sin saltos.
+# Para que tarde 5 minutos pon 300.
+DURACION_RAMPA_S = 120
+RAMPA_PASOS = max(1, DURACION_RAMPA_S // INTERVALO_S)
+
+# Qué tanto sigue "paseando" la variable mientras está en alerta (0 a 1).
+FACTOR_ALERTA = 0.4
+
+PHI_LENTO = float(np.exp(-INTERVALO_S / TAU_LENTO_S))
+INNOVACION_LENTA = float(np.sqrt(1 - PHI_LENTO ** 2))
+
+# Cuánto se aleja la variable de su base en el paseo lento.
+SIGMA_LENTA = {
+    v: min(BASE[v][1], 0.3 * TOLERANCIA_5MIN[v])
+    for v in VARIABLES
+}
+
+SIGMA_RUIDO = {
+    v: FACTOR_RUIDO * TOLERANCIA_5MIN[v]
+    for v in VARIABLES
 }
 
 
@@ -87,69 +172,224 @@ def evaluar_variable(variable, valor):
 
     return "NORMAL"
 
-def generar_valor(variable, rng, estado="NORMAL"):
 
-    media, desviacion = BASE[variable]
+def objetivo_alerta(variable, nivel, rng):
+    """
+    Valor hacia el que debe derivar la variable para entrar en una zona de
+    PRECAUCION o ALARMA (el centro de esa zona). Devuelve None si la variable
+    no tiene esa zona definida.
+    """
 
     al, pl, nmin, nmax, ph, ah = UMBRALES[variable]
+    minimo, maximo = LIMITES_FISICOS[variable]
 
-    if estado == "NORMAL":
+    opciones = []
 
-        minimo = nmin if nmin is not None else media - 3 * desviacion
-        maximo = nmax if nmax is not None else media + 3 * desviacion
+    if nivel == "PRECAUCION":
 
-        return float(np.clip(
-            rng.normal(media, desviacion),
-            minimo,
-            maximo
-        ))
-
-    if estado == "PRECAUCION":
-
-        lados = []
-
+        # Zona de precaución baja: entre la alarma baja y el mínimo normal.
         if pl is not None and nmin is not None:
-            lados.append("bajo")
+            inicio = al if al is not None else minimo
+            opciones.append((inicio + nmin) / 2)
 
+        # Zona de precaución alta: entre el máximo normal y la alarma alta.
         if ph is not None and nmax is not None:
-            lados.append("alto")
+            fin = ah if ah is not None else maximo
+            opciones.append((nmax + fin) / 2)
 
-        if not lados:
-            return float(rng.normal(media, desviacion))
-
-        lado = rng.choice(lados)
-
-        if lado == "bajo":
-            return float(rng.uniform(pl, nmin))
-
-        return float(rng.uniform(nmax, ph))
-
-    if estado == "ALARMA":
-
-        lados = []
+    elif nivel == "ALARMA":
 
         if al is not None and pl is not None:
-            lados.append("bajo")
+            opciones.append(al - (pl - al) / 2)
 
         if ah is not None and ph is not None:
-            lados.append("alto")
+            opciones.append(ah + (ah - ph) / 2)
 
-        if not lados:
-            return float(rng.normal(media, desviacion))
+    # Solo objetivos físicamente posibles.
+    opciones = [o for o in opciones if minimo <= o <= maximo]
 
-        lado = rng.choice(lados)
+    if not opciones:
+        return None
 
-        if lado == "bajo":
-            return float(rng.uniform(al - (pl - al), al - 0.01))
-
-        return float(rng.uniform(ah + 0.01, ah + (ah - ph)))
-
-    return float(rng.normal(media, desviacion))
+    return float(rng.choice(opciones))
 
 
-def generar_datos(n=10000, astronauta=None):
+class SimuladorFisiologico:
+    """
+    Genera mediciones consecutivas, suaves y coherentes.
 
-    rng = np.random.default_rng(42)
+    - En estado normal, cada variable "pasea" muy lentamente alrededor de su
+      valor base y, dentro de cualquier ventana de 5 minutos, nunca varía
+      más de TOLERANCIA_5MIN[variable].
+    - Al activar una alerta, la variable avanza en una rampa suave (sin
+      saltos ni zigzag) hacia la zona de precaución o alarma, y al quitarla
+      regresa igual de suave a su base.
+    """
+
+    def __init__(self, semilla=None):
+
+        self.rng = np.random.default_rng(semilla)
+
+        # Componente lenta: pequeña desviación respecto a la base.
+        self.lento = {
+            v: float(self.rng.normal(0, SIGMA_LENTA[v]))
+            for v in VARIABLES
+        }
+
+        # Valor "limpio" (sin ruido) de cada variable.
+        self.centros = {
+            v: float(BASE[v][0] + self.lento[v])
+            for v in VARIABLES
+        }
+
+        self.valores = dict(self.centros)
+
+        # Últimas mediciones (5 min) de cada variable, para controlar la tolerancia.
+        self.ventanas = {
+            v: deque(maxlen=VENTANA_PASOS)
+            for v in VARIABLES
+        }
+
+        # variable -> valor objetivo mientras tiene una alerta activa.
+        self.objetivos = {}
+
+        # variable -> avance máximo por medición de la rampa en curso.
+        self.velocidad = {}
+
+    def activar_alerta(self, variable, nivel):
+        """Devuelve False si la variable no tiene esa zona definida."""
+
+        objetivo = objetivo_alerta(variable, nivel, self.rng)
+
+        if objetivo is None:
+            return False
+
+        self.objetivos[variable] = objetivo
+
+        distancia = abs(objetivo - self.centros[variable])
+
+        self.velocidad[variable] = max(
+            distancia / RAMPA_PASOS,
+            0.02 * TOLERANCIA_5MIN[variable]
+        )
+
+        return True
+
+    def desactivar_alerta(self, variable=None):
+        """Quita la alerta de una variable (o de todas). Regresa suave a su base."""
+
+        if variable is None:
+            variables = list(self.objetivos)
+        elif variable in self.objetivos:
+            variables = [variable]
+        else:
+            variables = []
+
+        for v in variables:
+
+            del self.objetivos[v]
+
+            base = BASE[v][0] + self.lento[v]
+
+            self.velocidad[v] = max(
+                abs(base - self.centros[v]) / RAMPA_PASOS,
+                0.02 * TOLERANCIA_5MIN[v]
+            )
+
+    def siguiente(self):
+        """Avanza una medición y devuelve {variable: valor}."""
+
+        for variable in VARIABLES:
+
+            # 1. Paseo lento alrededor de la base.
+            self.lento[variable] = (
+                PHI_LENTO * self.lento[variable]
+                + INNOVACION_LENTA * SIGMA_LENTA[variable]
+                * self.rng.normal()
+            )
+
+            en_alerta = variable in self.objetivos
+
+            if en_alerta:
+                meta = (
+                    self.objetivos[variable]
+                    + FACTOR_ALERTA * self.lento[variable]
+                )
+            else:
+                meta = BASE[variable][0] + self.lento[variable]
+
+            # 2. Valor limpio: rampa suave si hay transición, o seguimiento lento.
+            if variable in self.velocidad:
+
+                dif = meta - self.centros[variable]
+                paso = self.velocidad[variable]
+
+                if abs(dif) <= paso:
+                    self.centros[variable] = meta
+                    del self.velocidad[variable]
+                else:
+                    self.centros[variable] += float(np.sign(dif)) * paso
+
+            else:
+                self.centros[variable] = meta
+
+            en_normal = (not en_alerta) and (variable not in self.velocidad)
+
+            # 3. Ruido muy pequeño de medición.
+            valor = self.centros[variable] + self.rng.normal(
+                0, SIGMA_RUIDO[variable]
+            )
+
+            ventana = self.ventanas[variable]
+
+            if en_normal:
+
+                # Tolerancia: en cualquier ventana de 5 min, máximo
+                # TOLERANCIA_5MIN entre el valor más alto y el más bajo.
+                if ventana:
+
+                    tolerancia = TOLERANCIA_5MIN[variable]
+
+                    bajo = max(ventana) - tolerancia
+                    alto = min(ventana) + tolerancia
+
+                    if bajo <= alto:
+                        valor = float(np.clip(valor, bajo, alto))
+
+                # Quedarse dentro del rango normal.
+                _, _, nmin, nmax, _, _ = UMBRALES[variable]
+
+                bajo_n = nmin if nmin is not None else -np.inf
+                alto_n = nmax if nmax is not None else np.inf
+
+                if bajo_n <= self.valores[variable] <= alto_n:
+                    valor = float(np.clip(valor, bajo_n, alto_n))
+
+            minimo, maximo = LIMITES_FISICOS[variable]
+            valor = float(np.clip(valor, minimo, maximo))
+
+            if en_normal:
+                ventana.append(valor)
+            else:
+                # Durante una alerta o una rampa la ventana no aplica.
+                ventana.clear()
+
+            self.valores[variable] = valor
+
+        return dict(self.valores)
+
+
+# Probabilidad, por medición y por variable, de que empiece un episodio de
+# precaución/alarma en los datos de entrenamiento.
+PROB_EPISODIO = 0.0001
+DURACION_EPISODIO = (60, 240)      # en mediciones
+PROB_ALARMA = 0.25                 # el resto de los episodios son PRECAUCION
+
+
+def generar_datos(n=10000, astronauta=None, semilla=42):
+
+    rng = np.random.default_rng(semilla + 1)
+    simulador = SimuladorFisiologico(semilla)
 
     if astronauta is None:
         astronauta = {
@@ -161,7 +401,36 @@ def generar_datos(n=10000, astronauta=None):
 
     registros = []
 
+    # variable -> mediciones que le quedan al episodio en curso.
+    episodios = {}
+
     for i in range(n):
+
+        # Inicio y fin de episodios de alerta.
+        for variable in VARIABLES:
+
+            if variable in episodios:
+
+                episodios[variable] -= 1
+
+                if episodios[variable] <= 0:
+                    simulador.desactivar_alerta(variable)
+                    del episodios[variable]
+
+            elif rng.random() < PROB_EPISODIO:
+
+                nivel = (
+                    "ALARMA" if rng.random() < PROB_ALARMA
+                    else "PRECAUCION"
+                )
+
+                if simulador.activar_alerta(variable, nivel):
+                    episodios[variable] = int(rng.integers(
+                        DURACION_EPISODIO[0],
+                        DURACION_EPISODIO[1] + 1
+                    ))
+
+        valores = simulador.siguiente()
 
         registro = {
             "astronauta_id": astronauta["id"],
@@ -169,23 +438,20 @@ def generar_datos(n=10000, astronauta=None):
             "edad": astronauta["edad"],
             "misión": astronauta["mision"],
             "timestamp": pd.Timestamp("2026-01-01")
-                         + pd.Timedelta(minutes=i)
+                         + pd.Timedelta(seconds=INTERVALO_S * i)
         }
 
         estados = []
 
-        for variable in VARIABLES:
+        for indice, variable in enumerate(VARIABLES):
 
-            # Cada variable recibe su propio estado.
-            estado = rng.choice(
-                ["NORMAL", "PRECAUCION", "ALARMA"],
-                p=[0.90, 0.07, 0.03]
-            )
+            valor = valores[variable]
 
-            valor = generar_valor(variable, rng, estado)
+            # El estado se calcula con el valor real generado.
+            estado = evaluar_variable(variable, valor)
 
             registro[variable] = valor
-            registro[f"estado_{VARIABLES.index(variable)}"] = estado
+            registro[f"estado_{indice}"] = estado
 
             estados.append(estado)
 
