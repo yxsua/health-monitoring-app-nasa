@@ -1,0 +1,189 @@
+{
+  "schema_version": "1.0.0",
+  "run_id": "example-run",
+  "scenario_id": "normal",
+  "seed": 42,
+  "generator_version": "example-1",
+  "simulation_time": "2026-11-14T08:30:00Z",
+  "items": [
+    {
+      "record_id": "sample-0001",
+      "astronaut_id": "A01",
+      "observed_at": "2026-11-14T08:30:00Z",
+      "mission": "Marte",
+      "source": "simulated",
+      "context": {
+        "activity": "unknown",
+        "fasting": null,
+        "hrv_baseline_ms": null
+      },
+      "physiological": {
+        "heart_rate": {
+          "value": 72,
+          "unit": "bpm",
+          "observed_at": "2026-11-14T08:30:00Z",
+          "quality": "valid",
+          "period_start": null,
+          "period_end": null
+        },
+        "systolic_pressure": {
+          "value": 115,
+          "unit": "mmHg",
+          "observed_at": "2026-11-14T08:30:00Z",
+          "quality": "valid",
+          "period_start": null,
+          "period_end": null
+        },
+        "diastolic_pressure": {
+          "value": 75,
+          "unit": "mmHg",
+          "observed_at": "2026-11-14T08:30:00Z",
+          "quality": "valid",
+          "period_start": null,
+          "period_end": null
+        },
+        "spo2": {
+          "value": 98,
+          "unit": "%",
+          "observed_at": "2026-11-14T08:30:00Z",
+          "quality": "valid",
+          "period_start": null,
+          "period_end": null
+        },
+        "body_temperature": {
+          "value": 36.6,
+          "unit": "degC",
+          "observed_at": "2026-11-14T08:30:00Z",
+          "quality": "valid",
+          "period_start": null,
+          "period_end": null
+        },
+        "glucose": {
+          "value": 88,
+          "unit": "mg/dL",
+          "observed_at": "2026-11-14T08:30:00Z",
+          "quality": "valid",
+          "period_start": null,
+          "period_end": null
+        },
+        "hrv_rmssd": {
+          "value": 54,
+          "unit": "ms",
+          "observed_at": "2026-11-14T08:30:00Z",
+          "quality": "valid",
+          "period_start": null,
+          "period_end": null
+        }
+      },
+      "self_assessment": {
+        "sleep_duration": {
+          "value": 6.5,
+          "unit": "h/day",
+          "observed_at": "2026-11-14T08:30:00Z",
+          "quality": "valid",
+          "period_start": "2026-11-13T00:00:00Z",
+          "period_end": "2026-11-14T00:00:00Z"
+        },
+        "mood": {
+          "value": 4,
+          "unit": "score_1_5",
+          "observed_at": "2026-11-14T08:30:00Z",
+          "quality": "valid",
+          "period_start": null,
+          "period_end": null
+        },
+        "exercise_duration": {
+          "value": 100,
+          "unit": "min/day",
+          "observed_at": "2026-11-14T08:30:00Z",
+          "quality": "valid",
+          "period_start": "2026-11-13T00:00:00Z",
+          "period_end": "2026-11-14T00:00:00Z"
+        }
+      },
+      "environment": {
+        "radiation_dose_rate": {
+          "value": 0.4,
+          "unit": "mSv/day",
+          "observed_at": "2026-11-14T08:30:00Z",
+          "quality": "valid",
+          "period_start": null,
+          "period_end": null
+        },
+        "co2": {
+          "value": 2500,
+          "unit": "ppm",
+          "observed_at": "2026-11-14T08:30:00Z",
+          "quality": "valid",
+          "period_start": null,
+          "period_end": null
+        },
+        "cabin_temperature": {
+          "value": 22,
+          "unit": "degC",
+          "observed_at": "2026-11-14T08:30:00Z",
+          "quality": "valid",
+          "period_start": null,
+          "period_end": null
+        },
+        "humidity": {
+          "value": 50,
+          "unit": "%",
+          "observed_at": "2026-11-14T08:30:00Z",
+          "quality": "valid",
+          "period_start": null,
+          "period_end": null
+        },
+        "noise": {
+          "value": 48,
+          "unit": "dBA",
+          "observed_at": "2026-11-14T08:30:00Z",
+          "quality": "valid",
+          "period_start": null,
+          "period_end": null
+        },
+        "cabin_pressure": {
+          "value": 101,
+          "unit": "kPa",
+          "observed_at": "2026-11-14T08:30:00Z",
+          "quality": "valid",
+          "period_start": null,
+          "period_end": null
+        },
+        "gravity": {
+          "value": 0,
+          "unit": "g",
+          "observed_at": "2026-11-14T08:30:00Z",
+          "quality": "valid",
+          "period_start": null,
+          "period_end": null
+        },
+        "earth_latency": {
+          "value": null,
+          "unit": "s",
+          "observed_at": null,
+          "quality": "missing",
+          "period_start": null,
+          "period_end": null
+        },
+        "simulated_daylight_duration": {
+          "value": null,
+          "unit": "h/day",
+          "observed_at": null,
+          "quality": "missing",
+          "period_start": null,
+          "period_end": null
+        },
+        "social_interaction_duration": {
+          "value": null,
+          "unit": "min/day",
+          "observed_at": null,
+          "quality": "missing",
+          "period_start": null,
+          "period_end": null
+        }
+      }
+    }
+  ],
+  "next_cursor": null
+}

@@ -1,0 +1,2455 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Simulated astronaut inputs response v1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "scenario_id",
+    "seed",
+    "generator_version",
+    "simulation_time",
+    "items",
+    "next_cursor"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scenario_id": {
+      "enum": [
+        "normal",
+        "solar_event",
+        "high_co2",
+        "prolonged_isolation"
+      ]
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "generator_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "simulation_time": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "items": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "$ref": "#/$defs/Observation"
+      }
+    },
+    "next_cursor": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "Observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "record_id",
+        "astronaut_id",
+        "observed_at",
+        "mission",
+        "source",
+        "context",
+        "physiological",
+        "self_assessment",
+        "environment"
+      ],
+      "properties": {
+        "record_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "astronaut_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observed_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "Z$"
+        },
+        "mission": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "const": "simulated"
+        },
+        "context": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "activity",
+            "fasting",
+            "hrv_baseline_ms"
+          ],
+          "properties": {
+            "activity": {
+              "enum": [
+                "rest",
+                "exercise",
+                "sleep",
+                "unknown"
+              ]
+            },
+            "fasting": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "hrv_baseline_ms": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "physiological": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "heart_rate",
+            "systolic_pressure",
+            "diastolic_pressure",
+            "spo2",
+            "body_temperature",
+            "glucose",
+            "hrv_rmssd"
+          ],
+          "properties": {
+            "heart_rate": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "unit",
+                "observed_at",
+                "quality",
+                "period_start",
+                "period_end"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "unit": {
+                  "const": "bpm"
+                },
+                "observed_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "quality": {
+                  "enum": [
+                    "valid",
+                    "missing",
+                    "invalid"
+                  ]
+                },
+                "period_start": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "period_end": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "valid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "number"
+                      },
+                      "observed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "value": {
+                        "type": "null"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "missing"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "observed_at": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "systolic_pressure": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "unit",
+                "observed_at",
+                "quality",
+                "period_start",
+                "period_end"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "unit": {
+                  "const": "mmHg"
+                },
+                "observed_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "quality": {
+                  "enum": [
+                    "valid",
+                    "missing",
+                    "invalid"
+                  ]
+                },
+                "period_start": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "period_end": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "valid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "number"
+                      },
+                      "observed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "value": {
+                        "type": "null"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "missing"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "observed_at": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "diastolic_pressure": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "unit",
+                "observed_at",
+                "quality",
+                "period_start",
+                "period_end"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "unit": {
+                  "const": "mmHg"
+                },
+                "observed_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "quality": {
+                  "enum": [
+                    "valid",
+                    "missing",
+                    "invalid"
+                  ]
+                },
+                "period_start": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "period_end": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "valid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "number"
+                      },
+                      "observed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "value": {
+                        "type": "null"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "missing"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "observed_at": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "spo2": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "unit",
+                "observed_at",
+                "quality",
+                "period_start",
+                "period_end"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "unit": {
+                  "const": "%"
+                },
+                "observed_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "quality": {
+                  "enum": [
+                    "valid",
+                    "missing",
+                    "invalid"
+                  ]
+                },
+                "period_start": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "period_end": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "valid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "number"
+                      },
+                      "observed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "value": {
+                        "type": "null"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "missing"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "observed_at": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "body_temperature": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "unit",
+                "observed_at",
+                "quality",
+                "period_start",
+                "period_end"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "unit": {
+                  "const": "degC"
+                },
+                "observed_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "quality": {
+                  "enum": [
+                    "valid",
+                    "missing",
+                    "invalid"
+                  ]
+                },
+                "period_start": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "period_end": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "valid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "number"
+                      },
+                      "observed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "value": {
+                        "type": "null"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "missing"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "observed_at": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "glucose": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "unit",
+                "observed_at",
+                "quality",
+                "period_start",
+                "period_end"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "unit": {
+                  "const": "mg/dL"
+                },
+                "observed_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "quality": {
+                  "enum": [
+                    "valid",
+                    "missing",
+                    "invalid"
+                  ]
+                },
+                "period_start": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "period_end": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "valid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "number"
+                      },
+                      "observed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "value": {
+                        "type": "null"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "missing"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "observed_at": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "hrv_rmssd": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "unit",
+                "observed_at",
+                "quality",
+                "period_start",
+                "period_end"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "unit": {
+                  "const": "ms"
+                },
+                "observed_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "quality": {
+                  "enum": [
+                    "valid",
+                    "missing",
+                    "invalid"
+                  ]
+                },
+                "period_start": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "period_end": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "valid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "number"
+                      },
+                      "observed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "value": {
+                        "type": "null"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "missing"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "observed_at": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "self_assessment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sleep_duration",
+            "mood",
+            "exercise_duration"
+          ],
+          "properties": {
+            "sleep_duration": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "unit",
+                "observed_at",
+                "quality",
+                "period_start",
+                "period_end"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 24
+                },
+                "unit": {
+                  "const": "h/day"
+                },
+                "observed_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "quality": {
+                  "enum": [
+                    "valid",
+                    "missing",
+                    "invalid"
+                  ]
+                },
+                "period_start": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "period_end": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "valid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "number"
+                      },
+                      "observed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      },
+                      "period_start": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      },
+                      "period_end": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "value": {
+                        "type": "null"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "missing"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "observed_at": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "mood": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "unit",
+                "observed_at",
+                "quality",
+                "period_start",
+                "period_end"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1,
+                  "maximum": 5
+                },
+                "unit": {
+                  "const": "score_1_5"
+                },
+                "observed_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "quality": {
+                  "enum": [
+                    "valid",
+                    "missing",
+                    "invalid"
+                  ]
+                },
+                "period_start": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "period_end": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "valid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "integer"
+                      },
+                      "observed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "value": {
+                        "type": "null"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "missing"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "observed_at": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "exercise_duration": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "unit",
+                "observed_at",
+                "quality",
+                "period_start",
+                "period_end"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1440
+                },
+                "unit": {
+                  "const": "min/day"
+                },
+                "observed_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "quality": {
+                  "enum": [
+                    "valid",
+                    "missing",
+                    "invalid"
+                  ]
+                },
+                "period_start": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "period_end": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "valid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "number"
+                      },
+                      "observed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      },
+                      "period_start": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      },
+                      "period_end": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "value": {
+                        "type": "null"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "missing"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "observed_at": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "environment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "radiation_dose_rate",
+            "co2",
+            "cabin_temperature",
+            "humidity",
+            "noise",
+            "cabin_pressure",
+            "gravity",
+            "earth_latency",
+            "simulated_daylight_duration",
+            "social_interaction_duration"
+          ],
+          "properties": {
+            "radiation_dose_rate": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "unit",
+                "observed_at",
+                "quality",
+                "period_start",
+                "period_end"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "unit": {
+                  "const": "mSv/day"
+                },
+                "observed_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "quality": {
+                  "enum": [
+                    "valid",
+                    "missing",
+                    "invalid"
+                  ]
+                },
+                "period_start": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "period_end": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "valid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "number"
+                      },
+                      "observed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "value": {
+                        "type": "null"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "missing"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "observed_at": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "co2": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "unit",
+                "observed_at",
+                "quality",
+                "period_start",
+                "period_end"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "unit": {
+                  "const": "ppm"
+                },
+                "observed_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "quality": {
+                  "enum": [
+                    "valid",
+                    "missing",
+                    "invalid"
+                  ]
+                },
+                "period_start": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "period_end": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "valid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "number"
+                      },
+                      "observed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "value": {
+                        "type": "null"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "missing"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "observed_at": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "cabin_temperature": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "unit",
+                "observed_at",
+                "quality",
+                "period_start",
+                "period_end"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "unit": {
+                  "const": "degC"
+                },
+                "observed_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "quality": {
+                  "enum": [
+                    "valid",
+                    "missing",
+                    "invalid"
+                  ]
+                },
+                "period_start": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "period_end": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "valid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "number"
+                      },
+                      "observed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "value": {
+                        "type": "null"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "missing"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "observed_at": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "humidity": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "unit",
+                "observed_at",
+                "quality",
+                "period_start",
+                "period_end"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "unit": {
+                  "const": "%"
+                },
+                "observed_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "quality": {
+                  "enum": [
+                    "valid",
+                    "missing",
+                    "invalid"
+                  ]
+                },
+                "period_start": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "period_end": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "valid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "number"
+                      },
+                      "observed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "value": {
+                        "type": "null"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "missing"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "observed_at": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "noise": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "unit",
+                "observed_at",
+                "quality",
+                "period_start",
+                "period_end"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "unit": {
+                  "const": "dBA"
+                },
+                "observed_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "quality": {
+                  "enum": [
+                    "valid",
+                    "missing",
+                    "invalid"
+                  ]
+                },
+                "period_start": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "period_end": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "valid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "number"
+                      },
+                      "observed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "value": {
+                        "type": "null"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "missing"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "observed_at": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "cabin_pressure": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "unit",
+                "observed_at",
+                "quality",
+                "period_start",
+                "period_end"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "unit": {
+                  "const": "kPa"
+                },
+                "observed_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "quality": {
+                  "enum": [
+                    "valid",
+                    "missing",
+                    "invalid"
+                  ]
+                },
+                "period_start": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "period_end": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "valid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "number"
+                      },
+                      "observed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "value": {
+                        "type": "null"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "missing"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "observed_at": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "gravity": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "unit",
+                "observed_at",
+                "quality",
+                "period_start",
+                "period_end"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "unit": {
+                  "const": "g"
+                },
+                "observed_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "quality": {
+                  "enum": [
+                    "valid",
+                    "missing",
+                    "invalid"
+                  ]
+                },
+                "period_start": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "period_end": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "valid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "number"
+                      },
+                      "observed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "value": {
+                        "type": "null"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "missing"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "observed_at": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "earth_latency": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "unit",
+                "observed_at",
+                "quality",
+                "period_start",
+                "period_end"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "unit": {
+                  "const": "s"
+                },
+                "observed_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "quality": {
+                  "enum": [
+                    "valid",
+                    "missing",
+                    "invalid"
+                  ]
+                },
+                "period_start": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "period_end": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "valid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "number"
+                      },
+                      "observed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "value": {
+                        "type": "null"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "missing"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "observed_at": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "simulated_daylight_duration": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "unit",
+                "observed_at",
+                "quality",
+                "period_start",
+                "period_end"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 24
+                },
+                "unit": {
+                  "const": "h/day"
+                },
+                "observed_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "quality": {
+                  "enum": [
+                    "valid",
+                    "missing",
+                    "invalid"
+                  ]
+                },
+                "period_start": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "period_end": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "valid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "number"
+                      },
+                      "observed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      },
+                      "period_start": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      },
+                      "period_end": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "value": {
+                        "type": "null"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "missing"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "observed_at": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "social_interaction_duration": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "unit",
+                "observed_at",
+                "quality",
+                "period_start",
+                "period_end"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1440
+                },
+                "unit": {
+                  "const": "min/day"
+                },
+                "observed_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "quality": {
+                  "enum": [
+                    "valid",
+                    "missing",
+                    "invalid"
+                  ]
+                },
+                "period_start": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                },
+                "period_end": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "pattern": "Z$"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "valid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "number"
+                      },
+                      "observed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      },
+                      "period_start": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      },
+                      "period_end": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "Z$"
+                      }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "value": {
+                        "type": "null"
+                      },
+                      "period_start": {
+                        "type": "null"
+                      },
+                      "period_end": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "quality": {
+                        "const": "missing"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "observed_at": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
