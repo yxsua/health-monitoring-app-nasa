@@ -1,0 +1,17 @@
+.git
+.agents
+**/__pycache__/
+**/.venv/
+**/node_modules/
+**/dist/
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/*.py[cod]
+**/*.db
+**/*.db-shm
+**/*.db-wal
+Docs/Challenge/*
+!Docs/Challenge/simulated-astronaut-inputs.schema.json
+!Docs/Challenge/simulated-astronaut-inputs.openapi.json
+Prototypes/
