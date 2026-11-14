@@ -2,6 +2,12 @@
 
 Status: proposed. Updated to prioritize a working demo. Based on [the initial specification](chatbot-initial-specification.md), with the user-requested scope reductions below.
 
+## Implementation Progress
+
+The initial backend increment is implemented in [Project/chatbot_app](../../Project/chatbot_app/README.md): astronaut-service authentication, persistent assessment state, versioned English PHQ-9/GAD-7 scored items, deterministic scoring, follow-up flags, private result history, risk-summary retrieval, and static explanations. OpenAPI, a risk-summary JSON Schema, synthetic scoring fixtures, and a typed frontend client are included. Twelve backend tests passed, including identity integration, restart recovery, concurrent revisions, and scoring boundaries.
+
+Milestones 1–3 have a working backend implementation. Milestone 5's producer API is implemented; the main risk consumer remains unimplemented. Milestone 4 (React UI) is next. Milestone 6 currently provides only the planned static fallback: no model or unrestricted free-text conversation. Packaging includes backend startup instructions and generated contracts; frontend/end-to-end demo completion is still pending.
+
 ## Scope
 
 Build an independent local chatbot service connected to the React frontend and the main risk-assessment interface. Keep deterministic questionnaire scoring separate from optional AI explanations. No direct simulator calls or shared database.

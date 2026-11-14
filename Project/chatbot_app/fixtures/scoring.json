@@ -1,0 +1,11 @@
+{
+  "description": "Synthetic answers for engineering demonstrations; not astronaut records.",
+  "assessment_version": "en-1.0.0",
+  "cases": [
+    {"code": "PHQ9", "responses": [0,0,0,0,0,0,0,0,0], "total_score": 0, "interpretation": "minimal_symptom_range", "follow_up_requested": false},
+    {"code": "PHQ9", "responses": [0,0,0,0,0,0,0,0,1], "total_score": 1, "interpretation": "minimal_symptom_range", "follow_up_requested": true},
+    {"code": "PHQ9", "responses": [3,3,3,3,3,3,3,3,3], "total_score": 27, "interpretation": "severe_symptom_range", "follow_up_requested": true},
+    {"code": "GAD7", "responses": [0,0,0,0,0,0,0], "total_score": 0, "interpretation": "minimal_symptom_range", "follow_up_requested": false},
+    {"code": "GAD7", "responses": [3,3,3,3,3,3,3], "total_score": 21, "interpretation": "severe_symptom_range", "follow_up_requested": false}
+  ]
+}

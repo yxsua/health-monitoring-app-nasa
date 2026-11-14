@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "FollowUp": {
+      "properties": {
+        "status": {
+          "enum": [
+            "unknown",
+            "not_triggered",
+            "follow_up_requested"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "guidance": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Guidance"
+        }
+      },
+      "required": [
+        "status",
+        "guidance"
+      ],
+      "title": "FollowUp",
+      "type": "object"
+    },
+    "Result": {
+      "properties": {
+        "result_id": {
+          "title": "Result Id",
+          "type": "string"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "assessment_code": {
+          "title": "Assessment Code",
+          "type": "string"
+        },
+        "assessment_version": {
+          "title": "Assessment Version",
+          "type": "string"
+        },
+        "total_score": {
+          "title": "Total Score",
+          "type": "integer"
+        },
+        "maximum_score": {
+          "title": "Maximum Score",
+          "type": "integer"
+        },
+        "interpretation": {
+          "title": "Interpretation",
+          "type": "string"
+        },
+        "scoring_version": {
+          "title": "Scoring Version",
+          "type": "string"
+        },
+        "completed_at": {
+          "title": "Completed At",
+          "type": "string"
+        },
+        "notice": {
+          "title": "Notice",
+          "type": "string"
+        }
+      },
+      "required": [
+        "result_id",
+        "session_id",
+        "assessment_code",
+        "assessment_version",
+        "total_score",
+        "maximum_score",
+        "interpretation",
+        "scoring_version",
+        "completed_at",
+        "notice"
+      ],
+      "title": "Result",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "summary_id": {
+      "title": "Summary Id",
+      "type": "string"
+    },
+    "revision": {
+      "title": "Revision",
+      "type": "integer"
+    },
+    "astronaut_id": {
+      "title": "Astronaut Id",
+      "type": "string"
+    },
+    "availability": {
+      "enum": [
+        "available",
+        "not_assessed",
+        "stale"
+      ],
+      "title": "Availability",
+      "type": "string"
+    },
+    "observed_at": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Observed At"
+    },
+    "updated_at": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Updated At"
+    },
+    "assessment_summaries": {
+      "items": {
+        "$ref": "#/$defs/Result"
+      },
+      "title": "Assessment Summaries",
+      "type": "array"
+    },
+    "follow_up": {
+      "$ref": "#/$defs/FollowUp"
+    },
+    "rule_version": {
+      "title": "Rule Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "summary_id",
+    "revision",
+    "astronaut_id",
+    "availability",
+    "observed_at",
+    "updated_at",
+    "assessment_summaries",
+    "follow_up",
+    "rule_version"
+  ],
+  "title": "RiskSummary",
+  "type": "object"
+}
