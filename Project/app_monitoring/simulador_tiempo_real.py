@@ -1,67 +1,84 @@
-
 import pandas as pd
 import numpy as np
 import time
 
-from generador_datos import VARIABLES
+from generador_datos import (
+    VARIABLES,
+    BASE,
+    UMBRALES,
+    evaluar_variable,
+    generar_valor
+)
 
-BASE = {
-    "fc (lpm)": 70,
-    "pa_sis (mmHg)": 115,
-    "pa_dia (mmHg)": 75,
-    "spo2 (%)": 98,
-    "temp (°C)": 36.7,
-    "glucosa (mg/dL)": 95,
-    "hrv (ms)": 65,
-    "sueño (h)": 7,
-    "ánimo (1-5)": 4,
-    "ejercicio (min)": 30,
-    "radiación (mSv/día)": 0.5,
-    "co2 (ppm)": 1000,
-    "temp_cabina (°C)": 22,
-    "humedad (%)": 45,
-    "ruido (dBA)": 40,
-    "presión (kPa)": 101,
-    "gravedad (g)": 0.1
-}
 
-def generar_medicion(escenario="normal"):
+def generar_medicion(astronauta, variable_alerta=None, nivel=None):
+
+    rng = np.random.default_rng()
 
     datos = {}
 
     for variable in VARIABLES:
 
-        valor = BASE[variable]
+        if variable == variable_alerta and nivel is not None:
+            estado = nivel
+        else:
+            estado = "NORMAL"
 
-        desviacion = abs(valor * 0.03)
+        datos[variable] = generar_valor(
+            variable,
+            rng,
+            estado
+        )
 
-        nuevo = np.random.normal(valor, desviacion)
-
-        if escenario == "precaucion":
-            nuevo += desviacion * 3
-
-        elif escenario == "critico":
-            nuevo += desviacion * 6
-
-        datos[variable] = float(nuevo)
-
-    datos["astronauta_id"] = "AST-001"
-
+    datos["astronauta_id"] = astronauta["id"]
+    datos["nombre"] = astronauta["nombre"]
     datos["timestamp"] = pd.Timestamp.now()
 
     return datos
 
-def iniciar():
 
-    print("ASTRAHEALTH AI - MONITOREO")
+def iniciar(astronauta):
+
+    print("\nASTRAHEALTH AI - MONITOREO")
+    print("Astronauta:", astronauta["nombre"])
     print("Presiona Ctrl+C para detener.")
 
+    print("\nModo de simulación:")
+    print("1. Normal")
+    print("2. Generar precaución individual")
+    print("3. Generar alarma individual")
+
+    opcion = input("Selecciona el modo: ").strip()
+
+    variable_alerta = None
+    nivel = None
+
+    if opcion in ["2", "3"]:
+
+        print("\nVariables disponibles:")
+
+        for i, variable in enumerate(VARIABLES):
+            print(f"{i + 1}. {variable}")
+
+        seleccion = int(input("\nSelecciona variable: "))
+
+        if seleccion < 1 or seleccion > len(VARIABLES):
+            print("Selección inválida.")
+            return
+
+        variable_alerta = VARIABLES[seleccion - 1]
+
+        nivel = "PRECAUCION" if opcion == "2" else "ALARMA"
+
     try:
+
         while True:
 
-            # Cambiar a precaucion o critico
-            # para probar las alertas.
-            medicion = generar_medicion("normal")
+            medicion = generar_medicion(
+                astronauta,
+                variable_alerta,
+                nivel
+            )
 
             print("\nNueva medición:")
             print(medicion)
@@ -71,6 +88,5 @@ def iniciar():
             time.sleep(5)
 
     except KeyboardInterrupt:
-        print("Simulación detenida.")
 
-
+        print("\nSimulación detenida.")
