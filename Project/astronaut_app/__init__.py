@@ -1,0 +1,1 @@
+"""Local astronaut identity service."""
