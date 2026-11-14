@@ -1,92 +1,110 @@
 # alert_engine.py
+from enum import Enum
 
-# Definición de umbrales: (limite_precaucion, limite_critico, direccion)
-# direccion: "up" (si sube es malo), "down" (si baja es malo)
-UMBRALES = {
-    "fc (lpm)": (100, 120, "up"),
-    "pa_sis (mmHg)": (130, 140, "up"),
-    "pa_dia (mmHg)": (85, 90, "up"),
-    "spo2 (%)": (95, 90, "down"),
-    "temp (°C)": (37.5, 38.5, "up"),
-    "glucosa (mg/dL)": (120, 150, "up"),
-    "hrv (ms)": (40, 30, "down"), # HRV bajo indica estrés
-    "sueño (h)": (6, 4, "down"),
-    "ánimo (1-5)": (3, 2, "down"),
-    "ejercicio (min)": (0, 0, "none"), # El ejercicio bajo no es alerta médica
-    "radiación (mSv/día)": (1.0, 2.0, "up"),
-    "co2 (ppm)": (1500, 2000, "up"),
-    "temp_cabina (°C)": (26, 30, "up"),
-    "humedad (%)": (60, 70, "up"),
-    "ruido (dBA)": (60, 70, "up"),
-    "presión (kPa)": (98, 95, "down"),
-    "gravedad (g)": (0.5, 1.0, "up")
+class MissionPhase(Enum):
+    REPOSO = "reposo"
+    EJERCICIO = "ejercicio"
+    EVA = "eva" # Paseo espacial
+    SUEÑO = "sueño"
+
+class TriageLevel(Enum):
+    NOMINAL = 0
+    WATCH = 1     # Precaución
+    WARNING = 2   # Advertencia
+    CRITICAL = 3  # Emergencia
+
+# Umbrales dinámicos según la fase de la misión (ej. FC)
+UMBRALES_FISIOLOGICOS = {
+    MissionPhase.REPOSO: {"fc (lpm)": (100, 120, "up")},
+    MissionPhase.EJERCICIO: {"fc (lpm)": (150, 180, "up")}, # En ejercicio es normal subir
+    MissionPhase.EVA: {"fc (lpm)": (130, 160, "up")},
+    MissionPhase.SUEÑO: {"fc (lpm)": (80, 100, "up")}
 }
 
-def evaluar_variable(variable, valor):
-    if variable not in UMBRALES:
-        return "NORMAL"
-    
-    lim_prac, lim_crit, direccion = UMBRALES[variable]
-    
-    if direccion == "none":
-        return "NORMAL"
-        
-    if direccion == "up":
-        if valor >= lim_crit: return "CRITICO"
-        if valor >= lim_prac: return "PRECAUCION"
-    elif direccion == "down":
-        if valor <= lim_crit: return "CRITICO"
-        if valor <= lim_prac: return "PRECAUCION"
-        
-    return "NORMAL"
+# Umbrales ambientales (estáticos, no dependen del astronauta)
+UMBRALES_AMBIENTALES = {
+    "co2 (ppm)": (1500, 2000, "up"),
+    "radiación (mSv/día)": (1.0, 2.0, "up"),
+    "presión (kPa)": (98, 95, "down")
+}
 
-def generar_alertas_actuales(medicion):
-    """Evalúa la medición actual y genera alertas de estado."""
-    alertas = []
-    estado_global = "NORMAL"
+def evaluar_variable(variable, valor, fase_mision):
+    # Lógica de evaluación fisiológica dinámica
+    if variable in UMBRALES_FISIOLOGICOS.get(fase_mision, {}):
+        lim_prac, lim_crit, _ = UMBRALES_FISIOLOGICOS[fase_mision][variable]
+        if valor >= lim_crit: return TriageLevel.CRITICAL
+        if valor >= lim_prac: return TriageLevel.WATCH
     
+    # Lógica de evaluación ambiental
+    if variable in UMBRALES_AMBIENTALES:
+        lim_prac, lim_crit, direccion = UMBRALES_AMBIENTALES[variable]
+        if direccion == "up":
+            if valor >= lim_crit: return TriageLevel.CRITICAL
+            if valor >= lim_prac: return TriageLevel.WARNING
+        elif direccion == "down":
+            if valor <= lim_crit: return TriageLevel.CRITICAL
+            if valor <= lim_prac: return TriageLevel.WARNING
+            
+    return TriageLevel.NOMINAL
+
+def evaluar_correlaciones(medicion, fase_mision):
+    """
+    Lógica de Soporte Vital: Cruza variables para detectar fallos sistémicos.
+    """
+    alertas_correlacionadas = []
+    
+    # 1. Correlación de Hipoxia (Fallo de Soporte Vital)
+    # Si el CO2 sube, el SpO2 baja y la FC sube -> No es un problema cardíaco, es el aire.
+    if (medicion.get("co2 (ppm)", 0) > 1500 and 
+        medicion.get("spo2 (%)", 100) < 95 and 
+        medicion.get("fc (lpm)", 60) > 100):
+        alertas_correlacionadas.append({
+            "nivel": TriageLevel.CRITICAL,
+            "sistema": "SOPORTE_VITAL",
+            "mensaje": "FALLO DE VENTILACIÓN: CO2 elevado causando hipoxia y taquicardia. Activar scrubbers de emergencia."
+        })
+
+    # 2. Correlación de Fatiga Cognitiva (Riesgo en EVA)
+    # Si el astronauta durmió mal, tiene HRV bajo y ánimo bajo -> Riesgo de error humano.
+    if (medicion.get("sueño (h)", 8) < 6 and 
+        medicion.get("hrv (ms)", 50) < 40 and 
+        medicion.get("ánimo (1-5)", 5) <= 2):
+        alertas_correlacionadas.append({
+            "nivel": TriageLevel.WARNING,
+            "sistema": "COGNITIVO",
+            "mensaje": "Riesgo de fatiga extrema detectado. Restringir maniobras EVA complejas. Sugerir descanso."
+        })
+
+    # 3. Correlación de Radiación
+    if medicion.get("radiación (mSv/día)", 0) > 2.0 and medicion.get("temp (°C)", 37) > 37.5:
+        alertas_correlacionadas.append({
+            "nivel": TriageLevel.WATCH,
+            "sistema": "RADIACION",
+            "mensaje": "Exposición a radiación con fiebre leve. Monitorear posibles náuseas o síndrome de radiación."
+        })
+        
+    return alertas_correlacionadas
+
+def generar_triage(medicion, fase_mision=MissionPhase.REPOSO):
+    alertas_individuales = []
+    nivel_maximo = TriageLevel.NOMINAL
+    
+    # 1. Evaluar variables una por una
     for variable, valor in medicion.items():
         if variable in ["astronauta_id", "timestamp"]: continue
-        
-        nivel = evaluar_variable(variable, valor)
-        
-        if nivel != "NORMAL":
-            alertas.append({
-                "variable": variable,
-                "valor": round(valor, 2),
-                "nivel": nivel,
-                "mensaje": f"{variable} en estado {nivel}"
-            })
-            
-            # El estado global toma la peor alerta
-            if nivel == "CRITICO":
-                estado_global = "CRITICO"
-            elif nivel == "PRECAUCION" and estado_global != "CRITICO":
-                estado_global = "PRECAUCION"
-                
-    return estado_global, alertas
+        nivel = evaluar_variable(variable, valor, fase_mision)
+        if nivel != TriageLevel.NOMINAL:
+            alertas_individuales.append({"variable": variable, "nivel": nivel.name, "valor": valor})
+            if nivel.value > nivel_maximo.value: nivel_maximo = nivel
 
-def generar_alertas_preventivas(prediccion_dict, estado_actual_global):
-    """
-    Compara la predicción del LSTM con el estado actual.
-    Si el futuro es peor que el presente, lanza alerta preventiva.
-    """
-    alertas_preventivas = []
-    
-    # Solo alertamos preventivamente si el paciente está estable ahora
-    # Si ya está crítico, las alertas preventivas no tienen sentido
-    if estado_actual_global != "NORMAL":
-        return alertas_preventivas
+    # 2. Evaluar correlaciones cruzadas (El toque de NASA)
+    alertas_cruzadas = evaluar_correlaciones(medicion, fase_mision)
+    for a in alertas_cruzadas:
+        if a["nivel"].value > nivel_maximo.value: nivel_maximo = a["nivel"]
 
-    for variable, valor_futuro in prediccion_dict.items():
-        nivel_futuro = evaluar_variable(variable, valor_futuro)
-        
-        if nivel_futuro in ["PRECAUCION", "CRITICO"]:
-            alertas_preventivas.append({
-                "variable": variable,
-                "valor_predicho": round(valor_futuro, 2),
-                "nivel_riesgo": nivel_futuro,
-                "mensaje": f"Tendencia indica que {variable} llegará a {nivel_futuro} pronto."
-            })
-            
-    return alertas_preventivas
+    return {
+        "estado_global": nivel_maximo.name,
+        "fase_mision": fase_mision.value,
+        "alertas_individuales": alertas_individuales,
+        "alertas_sistemicas": alertas_cruzadas
+    }
