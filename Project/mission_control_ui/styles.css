@@ -323,10 +323,19 @@ main { width: min(1240px, calc(100% - 44px)); margin: 0 auto; }
 .crew-reading-group { margin-top: 14px; }
 .crew-reading-group h4 { margin: 0 0 8px; color: var(--blue); font-size: 12px; font-weight: 680; }
 .crew-reading-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 7px; }
-.crew-reading { display: grid; min-width: 0; min-height: 67px; align-content: space-between; gap: 4px; padding: 8px 9px; border: 1px solid #e5e8ef; background: #fafbfc; }
-.crew-reading > span { color: #707b92; font-size: 10px; line-height: 1.25; }
+.crew-reading { display: grid; min-width: 0; min-height: 112px; align-content: space-between; gap: 5px; padding: 9px; border: 1px solid #e5e8ef; background: #fafbfc; }
+.crew-reading__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 5px; }
+.crew-reading__top > span { color: #707b92; font-size: 10px; line-height: 1.25; }
+.crew-reading__top > small { flex: 0 0 auto; color: #8791a5; font-size: 8px; text-transform: capitalize; }
 .crew-reading > strong { color: var(--ink); font-size: 13px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.crew-reading > small { color: #8791a5; font-size: 9px; text-transform: capitalize; }
+.crew-reading__chart { height: 34px; min-width: 0; overflow: hidden; }
+.crew-reading__chart .metric-sparkline { height: 100%; }
+.crew-reading__chart .metric-visual__waiting { display: block; padding-top: 11px; font-size: 7px; }
+.crew-reading__chart--ring .metric-ring-wrap { height: 100%; grid-template-columns: 32px minmax(0, 1fr); gap: 7px; }
+.crew-reading__chart--ring .metric-ring { width: 30px; height: 30px; }
+.crew-reading__chart--ring .metric-ring::before { inset: 4px; }
+.crew-reading__chart--ring .metric-ring i { inset: 11px; }
+.crew-reading__baseline { color: #8791a5; font-size: 8px; line-height: 1.2; }
 .crew-updated-at { margin: 13px 0 0; color: #78839b; font-size: 10px; }
 .crew-loading { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; }
 .crew-loading i { height: 100px; border: 1px solid var(--line); background: linear-gradient(105deg, #f5f6fa 22%, #fff 45%, #f5f6fa 68%); background-size: 220% 100%; animation: crew-shimmer 1.6s ease-in-out infinite; }
@@ -347,4 +356,102 @@ main { width: min(1240px, calc(100% - 44px)); margin: 0 auto; }
 }
 @media (prefers-reduced-motion: reduce) {
   .crew-loading i { animation: none; }
+}
+
+/* AstraHealth dashboard and authentication visual language */
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --ink: #151923;
+  --muted: #505a6c;
+  --line: #dce2ec;
+  --blue: #0e0b9c;
+  --lime: #c6ff00;
+  --paper: #fff;
+  --soft: #f5f7fb;
+  --red: #d83d4b;
+}
+
+.topline { background: linear-gradient(90deg, var(--lime) 0 12%, var(--blue) 12% 100%); }
+.brand { gap: 10px; font-size: 14px; letter-spacing: .04em; }
+.brand-mark { width: 38px; height: 38px; border: 0; border-radius: 0; object-fit: cover; object-position: center 27%; box-shadow: none; }
+h1, h2, h3, .crew-subheading { font-family: "Arial Narrow", "Roboto Condensed", "Bahnschrift SemiCondensed", "Segoe UI", sans-serif; letter-spacing: .015em; }
+.login-layout { width: 100%; min-height: calc(100svh - 80px); grid-template-columns: minmax(0, 1.08fr) minmax(420px, .92fr); gap: 0; padding: 0; }
+body:has(#login-view:not(.hidden)) main { width: 100%; margin: 0; }
+body:has(#login-view:not(.hidden)) .topbar, body:has(#login-view:not(.hidden)) .topline { display: none; }
+.login-visual { position: relative; display: flex; min-height: calc(100svh - 4px); align-items: center; justify-content: center; overflow: hidden; padding: 28px clamp(28px, 4.2vw, 64px); background: #050609; isolation: isolate; }
+.login-visual::before { position: absolute; z-index: 1; inset: 0; background: linear-gradient(180deg, rgb(5 6 9 / 62%), transparent 23%, transparent 66%, rgb(5 6 9 / 60%)), radial-gradient(ellipse at 50% 55%, rgb(14 11 156 / 18%), transparent 75%); content: ""; pointer-events: none; }
+.login-brand { position: absolute; z-index: 4; top: 22px; left: clamp(28px, 4.2vw, 64px); display: block; width: 132px; height: 132px; overflow: visible; filter: drop-shadow(0 6px 18px rgb(0 0 0 / 35%)); }
+.login-brand img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; }
+.station-image { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.station-caption { position: absolute; z-index: 2; bottom: 26px; left: clamp(28px, 4.2vw, 64px); display: flex; align-items: center; gap: 10px; color: #dce2ec; font-size: 10px; font-weight: 650; letter-spacing: .14em; }
+.station-caption i { width: 6px; height: 6px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 12px rgb(198 255 0 / 70%); }
+.login-panel { display: grid; align-items: center; justify-items: center; padding: 56px 32px; background: #fff; }
+.login-card { width: min(100%, 430px); max-width: none; justify-self: auto; padding: 0; border: 0; box-shadow: none; background: transparent; }
+.login-card h1 { margin: 11px 0 8px; color: var(--ink); font-size: 32px; letter-spacing: -.035em; }
+.login-intro { margin: 0 0 30px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.login-card label { margin-bottom: 17px; color: var(--ink); font-size: 13px; font-weight: 580; }
+.login-card input { height: 46px; border-radius: 3px; background: #fff; }
+.primary-button { height: 48px; border-radius: 3px; background: var(--blue); }
+.fine-print { color: #687386; }
+
+.crew-summary > div { border-radius: 8px; border-top: 2px solid var(--lime); background: var(--soft); }
+.crew-summary strong { font-family: "Arial Narrow", "Roboto Condensed", "Bahnschrift SemiCondensed", "Segoe UI", sans-serif; font-weight: 700; }
+.crew-metric-card { position: relative; min-height: 162px; grid-template-rows: auto auto 1fr auto; gap: 8px; padding: 13px; border-radius: 8px; border-color: var(--line); background: #fff; box-shadow: 0 6px 20px rgb(21 25 35 / 4%); }
+.crew-metric-card::before { position: absolute; top: -1px; left: 13px; right: 13px; height: 2px; background: var(--blue); content: ""; }
+.crew-metric-card:nth-child(3n + 2)::before { background: var(--lime); }
+.crew-metric-card > span { color: var(--muted); font-size: 11px; font-weight: 600; }
+.crew-metric-card > strong { color: var(--ink); font-family: "Arial Narrow", "Roboto Condensed", "Bahnschrift SemiCondensed", "Segoe UI", sans-serif; font-size: 22px; font-weight: 700; }
+.crew-metric-card > small { color: var(--quiet, #687386); font-size: 9px; }
+.crew-metric-card__chart { display: flex; min-height: 42px; align-items: end; }
+.metric-sparkline { width: 100%; height: 38px; overflow: visible; }
+.metric-sparkline__base { fill: none; stroke: #e5e8ef; stroke-width: 1; stroke-dasharray: 2 3; }
+.metric-sparkline__line { fill: none; stroke: var(--blue); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.metric-sparkline__point { fill: var(--lime); stroke: var(--blue); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.metric-ring-wrap { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 10px; }
+.metric-ring { display: grid; flex: 0 0 37px; width: 37px; height: 37px; place-items: center; border-radius: 50%; background: conic-gradient(var(--blue) var(--metric-progress), #e6e9ef 0); }
+.metric-ring i { width: 26px; height: 26px; border-radius: 50%; background: white; }
+.metric-ring-wrap .metric-sparkline { flex: 1; }
+.metric-visual__waiting { align-self: center; color: #9099aa; font-size: 8px; font-weight: 650; letter-spacing: .08em; }
+.crew-member, .crew-reading { border-radius: 7px; }
+.crew-reading { background: #f8f9fc; }
+.crew-subheading { font-size: 18px; font-weight: 700; letter-spacing: .025em; }
+.panel { border-radius: 10px; box-shadow: 0 8px 28px rgb(21 25 35 / 4%); }
+
+@media (max-width: 800px) {
+  .login-layout { min-height: 100svh; grid-template-columns: 1fr; }
+  .login-visual { min-height: 40svh; }
+  .login-panel { min-height: 60svh; padding: 38px 24px 46px; }
+  .login-card { width: min(100%, 430px); }
+}
+@media (max-width: 520px) {
+  .login-visual { min-height: 34svh; }
+  .login-brand { top: 8px; left: 20px; width: 104px; height: 104px; }
+  .station-caption { bottom: 16px; left: 20px; font-size: 8px; }
+  .crew-metric-card { min-height: 150px; padding: 11px; }
+}
+
+.console-nav { display: flex; align-items: stretch; gap: clamp(16px, 3vw, 34px); margin: 0 0 18px; border-bottom: 1px solid var(--line); }
+.console-nav__link { position: relative; min-height: 48px; padding: 0 4px; border: 0; background: transparent; color: #667188; cursor: pointer; font-family: "Arial Narrow", "Roboto Condensed", "Bahnschrift SemiCondensed", "Segoe UI", sans-serif; font-size: 14px; font-weight: 650; letter-spacing: .025em; }
+.console-nav__link::after { position: absolute; right: 0; bottom: -1px; left: 0; height: 3px; background: transparent; content: ""; }
+.console-nav__link:hover, .console-nav__link.is-active { color: var(--blue); }
+.console-nav__link.is-active::after { background: linear-gradient(90deg, var(--blue) 0 72%, var(--lime) 72% 100%); }
+.console-page { min-width: 0; }
+.console-page > .panel { margin-top: 0; }
+.chart-reference-note { display: flex; align-items: center; gap: 7px; margin: -3px 0 12px; color: #74809b; font-size: 10px; }
+.chart-reference-note i { display: block; width: 18px; border-top: 2px dotted #178548; }
+.crew-metric-card { min-height: 174px; grid-template-rows: auto auto 1fr auto; }
+.crew-metric-card > small { line-height: 1.45; }
+.crew-metric-card__chart { min-height: 46px; }
+.metric-sparkline { display: block; width: 100%; height: 42px; overflow: visible; }
+.metric-sparkline__area { opacity: .17; }
+.metric-sparkline__area--below { fill: #1f9b56; }
+.metric-sparkline__area--above { fill: #d73543; }
+.metric-sparkline__baseline { fill: none; stroke: #178548; stroke-width: 1.15; stroke-dasharray: 2.5 3; vector-effect: non-scaling-stroke; }
+.metric-sparkline__line { fill: none; stroke: var(--blue); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.metric-sparkline__point { fill: var(--lime); stroke: var(--blue); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.metric-ring-wrap .metric-sparkline { flex: 1; min-width: 0; }
+@media (max-width: 520px) {
+  .console-nav { gap: 19px; overflow-x: auto; }
+  .console-nav__link { flex: 0 0 auto; font-size: 13px; }
+  .crew-metric-card { min-height: 170px; }
 }
