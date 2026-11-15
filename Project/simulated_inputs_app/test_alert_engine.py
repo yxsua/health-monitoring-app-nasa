@@ -21,8 +21,8 @@ class AlertEngineTest(unittest.TestCase):
         estado, alertas = ae.generar_alertas_actuales({**OK, "co2 (ppm)": 8000, "fc (lpm)": 112})
         self.assertEqual(estado, "ADVERTENCIA")
         textos = " ".join(a["mensaje"] for a in alertas)
-        self.assertIn("hipercapnia", textos)
-        self.assertNotIn("hipoxia", textos)
+        self.assertIn("hypercapnia", textos)
+        self.assertNotIn("hypoxia", textos)
 
     def test_hipoxia_por_fuga(self):
         estado, _ = ae.generar_alertas_actuales({**OK, "presión (kPa)": 78, "spo2 (%)": 90})

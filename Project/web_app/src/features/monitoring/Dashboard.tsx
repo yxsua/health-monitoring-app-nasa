@@ -59,6 +59,10 @@ const metricInformation: Record<string, { what: string; why: string }> = {
 };
 type RiskLevel = 'normal' | 'caution' | 'warning' | 'critical' | 'unknown';
 type ToastAlert = { id: string; type: string; level: Exclude<RiskLevel, 'normal' | 'unknown'>; title: string; detail: string };
+const alertSystemLabels: Record<string, string> = {
+  fisiologia: 'physiology', ambiente: 'environment', soporte_vital: 'life support',
+  cognitivo: 'cognitive', radiacion: 'radiation', sensor: 'sensor',
+};
 const riskRank: Record<RiskLevel, number> = { unknown: 0, normal: 1, caution: 2, warning: 3, critical: 4 };
 const regionOptions = [
   { id: 'activity', label: 'Activity and wellbeing', title: 'Activity and wellbeing', fieldKeys: ['sleep_duration', 'mood', 'exercise_duration'] },
@@ -133,7 +137,8 @@ export function Dashboard() {
     if (analysis?.state !== 'ready' || analysis.recordId !== newest?.record_id || !analysis.result) return;
     const result = analysis.result;
     const incoming: Omit<ToastAlert, 'id'>[] = result.rules.alerts.map(alert => ({
-      type: `rule:${alert.code}`, level: alert.severity, title: alert.message, detail: alert.system.replaceAll('_', ' '),
+      type: `rule:${alert.code}`, level: alert.severity, title: alert.message,
+      detail: alertSystemLabels[alert.system.toLowerCase()] ?? alert.system.replaceAll('_', ' '),
     }));
     if (result.anomaly.status === 'available' && result.anomaly.is_anomaly) incoming.push({
       type: 'model:anomaly', level: 'warning', title: 'Unusual measurement pattern', detail: 'Isolation Forest flagged this sample for review.',
@@ -338,10 +343,10 @@ export function Dashboard() {
           <svg className="body-map-hotspots" viewBox="0 0 270 340" role="group" aria-labelledby="body-map-title body-map-desc">
             <title id="body-map-title">Human scan measurement map</title>
             <desc id="body-map-desc">Select the head, chest, lung, or abdomen markers to filter related readings. A red pulsing marker means a rule alert or a large deviation from simulator reference is present in that region.</desc>
-            <RegionHotspot x={135} y={84} id="activity" selected={selectedRegion} label="Activity & wellbeing" labelX={135} labelY={12} hasAlert={regionHasAlert(['sleep_duration', 'mood', 'exercise_duration'])} onChoose={selectRegion} onKeyDown={regionKeyDown}/>
-            <RegionHotspot x={135} y={146} id="circulation" selected={selectedRegion} label="Heart & circulation" labelX={210} labelY={137} hasAlert={regionHasAlert(['heart_rate', 'systolic_pressure', 'diastolic_pressure', 'hrv_rmssd'])} onChoose={selectRegion} onKeyDown={regionKeyDown}/>
-            <RegionHotspot x={135} y={158} id="respiratory" selected={selectedRegion} label="Respiratory" labelX={215} labelY={168} hasAlert={regionHasAlert(['spo2'])} onChoose={selectRegion} onKeyDown={regionKeyDown}/>
-            <RegionHotspot x={135} y={194} id="general" selected={selectedRegion} label="General health" labelX={202} labelY={205} hasAlert={regionHasAlert(['body_temperature', 'glucose'])} onChoose={selectRegion} onKeyDown={regionKeyDown}/>
+            <RegionHotspot x={135} y={84} id="activity" selected={selectedRegion} label="Activity & wellbeing" labelX={210} labelY={83} hasAlert={regionHasAlert(['sleep_duration', 'mood', 'exercise_duration'])} onChoose={selectRegion} onKeyDown={regionKeyDown}/>
+            <RegionHotspot x={135} y={140} id="circulation" selected={selectedRegion} label="Heart & circulation" labelX={210} labelY={126} hasAlert={regionHasAlert(['heart_rate', 'systolic_pressure', 'diastolic_pressure', 'hrv_rmssd'])} onChoose={selectRegion} onKeyDown={regionKeyDown}/>
+            <RegionHotspot x={135} y={170} id="respiratory" selected={selectedRegion} label="Respiratory" labelX={210} labelY={169} hasAlert={regionHasAlert(['spo2'])} onChoose={selectRegion} onKeyDown={regionKeyDown}/>
+            <RegionHotspot x={135} y={200} id="general" selected={selectedRegion} label="General health" labelX={210} labelY={212} hasAlert={regionHasAlert(['body_temperature', 'glucose'])} onChoose={selectRegion} onKeyDown={regionKeyDown}/>
           </svg>
         </div>
         <div className="related-readings"><h3>{selectedRegionInfo.title}</h3>{related.map(field => { const reading = newest ? getReading(newest, field) : null; return <div className="related-row" key={field.key}><span>{field.label}</span><strong>{reading ? pretty(reading.value, reading.unit) : 'Unavailable'}</strong></div>; })}</div>

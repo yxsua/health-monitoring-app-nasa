@@ -34,6 +34,18 @@ CONTRATO = {"heart_rate": "fc (lpm)", "systolic_pressure": "pa_sis (mmHg)", "dia
             "radiation_dose_rate": "radiación (mSv/día)", "co2": "co2 (ppm)", "cabin_temperature": "temp_cabina (°C)",
             "humidity": "humedad (%)", "noise": "ruido (dBA)", "cabin_pressure": "presión (kPa)", "gravity": "gravedad (g)"}
 CRITICAS = ("co2 (ppm)", "fc (lpm)", "spo2 (%)", "presión (kPa)")
+FIELD_LABELS_EN = {
+    "fc (lpm)": "Heart rate", "pa_sis (mmHg)": "Systolic pressure", "pa_dia (mmHg)": "Diastolic pressure",
+    "spo2 (%)": "SpO₂", "temp (°C)": "Body temperature", "glucosa (mg/dL)": "Glucose",
+    "hrv (ms)": "HRV (RMSSD)", "sueño (h)": "Sleep duration", "ánimo (1-5)": "Mood",
+    "ejercicio (min)": "Exercise duration", "radiación (mSv/día)": "Radiation dose rate",
+    "co2 (ppm)": "Cabin CO₂", "temp_cabina (°C)": "Cabin temperature", "humedad (%)": "Humidity",
+    "ruido (dBA)": "Noise", "presión (kPa)": "Cabin pressure", "gravedad (g)": "Gravity",
+}
+
+
+def _field_label(variable):
+    return FIELD_LABELS_EN.get(variable, variable)
 
 
 def nivel(valor, limites, abajo=False):
@@ -74,30 +86,31 @@ def generar_alertas_actuales(m, fase=MissionPhase.REPOSO, faltantes=()):
     n_o2 = nivel(kpa * 0.2094, PPO2_KPA, True)
 
     if n_co2:
-        alertas.append(_a("co2 (ppm)", n_co2, "CO2 de cabina por encima de lo nominal.", m["co2 (ppm)"], "AMBIENTE"))
+        alertas.append(_a("co2 (ppm)", n_co2, "Cabin CO₂ is above the nominal range.", m["co2 (ppm)"], "AMBIENTE"))
     if n_fc:
-        alertas.append(_a("fc (lpm)", n_fc, f"Frecuencia cardiaca fuera de rango para la fase {fase.value}.", m["fc (lpm)"]))
+        phase_label = {MissionPhase.REPOSO: "rest", MissionPhase.EJERCICIO: "exercise", MissionPhase.EVA: "EVA", MissionPhase.SUEÑO: "sleep"}[fase]
+        alertas.append(_a("fc (lpm)", n_fc, f"Heart rate is outside the expected range during {phase_label}.", m["fc (lpm)"]))
     for var, (*lims, sentido) in LIMITES.items():
         if var in m and (n := nivel(m[var], lims, sentido == "down")):
             amb = var in ("presión (kPa)", "radiación (mSv/día)")
-            alertas.append(_a(var, n, f"{var} fuera de rango.", m[var], "AMBIENTE" if amb else "FISIOLOGIA"))
+            alertas.append(_a(var, n, f"{_field_label(var)} is outside the configured range.", m[var], "AMBIENTE" if amb else "FISIOLOGIA"))
 
     # Correlaciones: separan causa ambiental de causa médica.
     if n_co2 and n_fc:  # hipercapnia: cefalea, taquipnea y taquicardia; NO es hipoxia
-        alertas.append(_a("co2+fc", max(n_co2, 2), "Taquicardia con CO2 alto: causa ambiental (hipercapnia). "
-                          "Revisar depurador de CO2 antes de tratar como problema cardiaco.", None, "SOPORTE_VITAL"))
+        alertas.append(_a("co2+fc", max(n_co2, 2), "Elevated heart rate with high CO₂ may have an environmental cause (hypercapnia). "
+                          "Review the CO₂ scrubber before treating it as a cardiac issue.", None, "SOPORTE_VITAL"))
     if n_o2 and n_sp:
-        alertas.append(_a("presión+spo2", max(n_o2, n_sp), "SpO2 baja con ppO2 reducida: hipoxia ambiental. "
-                          "Reponer O2 y aislar la fuga.", None, "SOPORTE_VITAL"))
+        alertas.append(_a("presión+spo2", max(n_o2, n_sp), "Low SpO₂ with reduced ppO₂ indicates possible environmental hypoxia. "
+                          "Restore oxygen and isolate the leak.", None, "SOPORTE_VITAL"))
     if m.get("sueño (h)", 8) < 6 and m.get("hrv (ms)", 50) < 40 and m.get("ánimo (1-5)", 5) <= 2:
-        alertas.append(_a("sueño+hrv+ánimo", 2, "Riesgo de fatiga cognitiva. Restringir maniobras EVA complejas.",
+        alertas.append(_a("sueño+hrv+ánimo", 2, "Possible cognitive fatigue based on sleep, HRV, and mood readings. Review complex EVA activity.",
                           None, "COGNITIVO"))
     if m.get("radiación (mSv/día)", 0) >= 5 and m.get("temp (°C)", 37) > 37.5:
-        alertas.append(_a("radiación+temp", 1, "Radiación alta con fiebre leve: vigilar náusea (síndrome de radiación).",
+        alertas.append(_a("radiación+temp", 1, "High radiation with mildly elevated body temperature; monitor for nausea (radiation syndrome).",
                           None, "RADIACION"))
     for var in faltantes:  # dato ausente = condición NO resuelta, se avisa de forma explícita
         if var in CRITICAS:
-            alertas.append(_a(var, 1, f"Sin dato válido de {var}: variable sin evaluar, no se considera resuelta.", None, "SENSOR"))
+            alertas.append(_a(var, 1, f"No valid {_field_label(var)} reading is available; this variable was not evaluated.", None, "SENSOR"))
     estado = max((a["nivel_num"] for a in alertas), default=0)
     return NIVELES[estado], alertas
 
@@ -107,7 +120,7 @@ def generar_alertas_preventivas(prediccion, estado_global="NORMAL", fase=Mission
     if estado_global == "CRITICO":
         return []
     _, alertas = generar_alertas_actuales(prediccion, fase)
-    return [{"mensaje": "Proyección: " + a["mensaje"], "valor_predicho": a["valor"]} for a in alertas]
+    return [{"mensaje": "Projection: " + a["mensaje"], "valor_predicho": a["valor"]} for a in alertas]
 
 
 def triage_payload(payload, fase=MissionPhase.REPOSO):
