@@ -18,7 +18,12 @@ COPY Project/chatbot_app/api.py ./Project/chatbot_app/api.py
 COPY Project/chatbot_app/assessments.py ./Project/chatbot_app/assessments.py
 COPY Project/chatbot_app/auth.py ./Project/chatbot_app/auth.py
 COPY Project/chatbot_app/models.py ./Project/chatbot_app/models.py
+COPY Project/chatbot_app/checkin_policy.py ./Project/chatbot_app/checkin_policy.py
+COPY Project/chatbot_app/model_adapter.py ./Project/chatbot_app/model_adapter.py
+COPY Project/chatbot_app/benchmark_local_model.py ./Project/chatbot_app/benchmark_local_model.py
 COPY Project/chatbot_app/storage.py ./Project/chatbot_app/storage.py
+COPY Project/recommendations_app/__init__.py ./Project/recommendations_app/__init__.py
+COPY Project/recommendations_app/engine.py ./Project/recommendations_app/engine.py
 
 USER 10001:10001
 EXPOSE 8002

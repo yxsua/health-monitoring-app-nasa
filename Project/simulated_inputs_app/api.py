@@ -7,6 +7,7 @@ import random
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from threading import Lock
+from uuid import UUID
 
 from fastapi import Body, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -66,6 +67,16 @@ def create_app():
     def error(status, code, message):
         return JSONResponse(status_code=status, content={"error": {"code": code, "message": message}})
 
+    def configured_subject(run, astronaut_id):
+        if astronaut_id in run["astronauts"]:
+            return True
+        try:
+            UUID(astronaut_id)
+        except (ValueError, AttributeError, TypeError):
+            return False
+        run["astronauts"].add(astronaut_id)
+        return True
+
     @app.exception_handler(RequestValidationError)
     async def invalid_request(request, exc):
         if request.url.path.endswith("/analysis"):
@@ -79,7 +90,7 @@ def create_app():
         run = app.state.runs.get(run_id)
         if run is None:
             return error(404, "run_not_found", "Unknown simulation run.")
-        if astronaut_id not in run["astronauts"]:
+        if not configured_subject(run, astronaut_id):
             return error(404, "astronaut_not_found", "Astronaut is not configured in this run.")
         with app.state.lock:
             key = (run_id, astronaut_id)
@@ -93,7 +104,10 @@ def create_app():
             scenario_id = run["scenario_id"]
             transition = run["scenario_transition"]
             if transition is not None:
-                transition_step = min(transition["step"] + 1, SCENARIO_TRANSITION_SAMPLES)
+                known_steps = transition["steps"]
+                already_complete = max(known_steps.values(), default=0) >= SCENARIO_TRANSITION_SAMPLES
+                first_sample_after_transition = astronaut_id not in known_steps and already_complete
+                transition_step = SCENARIO_TRANSITION_SAMPLES if first_sample_after_transition else min(known_steps.get(astronaut_id, 0) + 1, SCENARIO_TRANSITION_SAMPLES)
                 progress = transition_step / SCENARIO_TRANSITION_SAMPLES
                 raw = generar_medicion(
                     escenario=scenario_id, rng=random.Random(seed), astronauta_id=astronaut_id,
@@ -103,6 +117,7 @@ def create_app():
                     "active": transition_step < SCENARIO_TRANSITION_SAMPLES,
                     "step": transition_step, "total_steps": SCENARIO_TRANSITION_SAMPLES,
                 }
+                transition["steps"][astronaut_id] = transition_step
             else:
                 transition_step = SCENARIO_TRANSITION_SAMPLES
                 raw = generar_medicion(escenario=scenario_id, rng=random.Random(seed), astronauta_id=astronaut_id, timestamp=now)
@@ -140,10 +155,8 @@ def create_app():
             except Exception:
                 return error(503, "simulation_unavailable", "Could not produce contract-valid simulation inputs.")
             if transition is not None:
-                transition["step"] = transition_step
                 if transition_step >= SCENARIO_TRANSITION_SAMPLES:
                     run["active_scenario_id"] = scenario_id
-                    run["scenario_transition"] = None
             app.state.sequences[key] = (sequence, now)
             return payload
 
@@ -154,7 +167,8 @@ def create_app():
             return error(404, "run_not_found", "Unknown simulation run.")
         with app.state.lock:
             transition = run["scenario_transition"]
-            transition_status = ({"active": True, "step": transition["step"],
+            progress = max(transition["steps"].values(), default=0) if transition else SCENARIO_TRANSITION_SAMPLES
+            transition_status = ({"active": progress < SCENARIO_TRANSITION_SAMPLES, "step": progress,
                 "total_steps": SCENARIO_TRANSITION_SAMPLES} if transition else
                 {"active": False, "step": SCENARIO_TRANSITION_SAMPLES,
                  "total_steps": SCENARIO_TRANSITION_SAMPLES})
@@ -173,10 +187,11 @@ def create_app():
             if scenario_id != run["scenario_id"]:
                 previous_transition = run["scenario_transition"]
                 if previous_transition is not None:
+                    previous_step = max(previous_transition["steps"].values(), default=0)
                     start_parameters = interpolar_parametros(
                         previous_transition["from_parameters"],
                         previous_transition["to_scenario_id"],
-                        previous_transition["step"] / SCENARIO_TRANSITION_SAMPLES,
+                        previous_step / SCENARIO_TRANSITION_SAMPLES,
                     )
                     from_scenario_id = previous_transition["from_scenario_id"]
                 else:
@@ -186,7 +201,7 @@ def create_app():
                     "from_scenario_id": from_scenario_id,
                     "from_parameters": start_parameters,
                     "to_scenario_id": scenario_id,
-                    "step": 0,
+                    "steps": {},
                 }
             run["scenario_id"] = scenario_id
             transition_active = run["scenario_transition"] is not None
@@ -198,7 +213,7 @@ def create_app():
         run = app.state.runs.get(run_id)
         if run is None:
             return error(404, "run_not_found", "Unknown simulation run.")
-        if astronaut_id not in run["astronauts"]:
+        if not configured_subject(run, astronaut_id):
             return error(404, "astronaut_not_found", "Astronaut is not configured in this run.")
         scenario_id = body.get("scenario_id")
         observation = body.get("observation")

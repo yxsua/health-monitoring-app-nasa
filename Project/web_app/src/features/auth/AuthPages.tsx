@@ -2,6 +2,8 @@ import { useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { EarthGlobe } from './EarthGlobe';
+import { HealthProfileFields } from './HealthProfileFields';
+import { emptyHealthProfileDraft } from './types';
 
 export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const isRegister = mode === 'register';
@@ -11,10 +13,11 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [values, setValues] = useState({ username: '', password: '', display_name: '', mission: '' });
+  const [health, setHealth] = useState(emptyHealthProfileDraft);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setError('');
     try {
-      if (isRegister) await register(values); else await signIn(values.username, values.password);
+      if (isRegister) await register({ ...values, ...health }); else await signIn(values.username, values.password);
       navigate(location.state?.from?.pathname ?? '/dashboard', { replace: true });
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'The request could not be completed.'); }
     finally { setBusy(false); }
@@ -35,6 +38,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
           <label>Username<input autoComplete="username" required minLength={3} maxLength={40} pattern="[A-Za-z0-9_.-]+" value={values.username} onChange={e => setValues({ ...values, username: e.target.value })} /></label>
           <label>Password<input type="password" autoComplete={isRegister ? 'new-password' : 'current-password'} required minLength={8} maxLength={128} value={values.password} onChange={e => setValues({ ...values, password: e.target.value })} /></label>
           {isRegister && <label>Mission <span className="optional">Optional</span><input maxLength={100} value={values.mission} onChange={e => setValues({ ...values, mission: e.target.value })} /></label>}
+          {isRegister && <details className="health-details"><summary>Optional health and emergency details</summary><HealthProfileFields value={health} onChange={setHealth} idPrefix="register" /></details>}
           {error && <p className="notice notice--error" role="alert">{error}</p>}
           <button className="button button--primary button--full" disabled={busy}>{busy ? 'Connecting…' : isRegister ? 'Create profile' : 'Sign in'}</button>
         </form>

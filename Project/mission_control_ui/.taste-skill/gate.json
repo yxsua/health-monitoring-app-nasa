@@ -1,0 +1,69 @@
+{
+ "start": "2026-11-15T14:31:33.843Z",
+ "round": 0,
+ "idle": 0,
+ "errors": 1,
+ "status": "error",
+ "history": [
+  {
+   "at": "2026-11-15T14:31:56.735Z",
+   "mode": "manual",
+   "status": "error",
+   "fails": 0,
+   "round": 0,
+   "reused": false,
+   "stopHookActive": false
+  }
+ ],
+ "max": 3,
+ "marker": {
+  "page": "index.html",
+  "url": null,
+  "root": null,
+  "kind": "software",
+  "category": "Mission-control-console",
+  "primary": "Queue-update",
+  "rounds": 3,
+  "start": "2026-11-15T14:31:33.843Z",
+  "by": "gate.mjs --start"
+ },
+ "manual": true,
+ "fp": "b6b600823202d8c2",
+ "page": "index.html",
+ "found": {
+  "fails": [],
+  "warns": [
+   {
+    "check": "copy-stat-strip",
+    "msg": "stat strip x1",
+    "fix": "a strip only of figures the brief gives (a price, hours, a count); otherwise put each number in the sentence it proves, or leave it out (references/copy-tells.md)",
+    "widths": [],
+    "from": "copy",
+    "where": "copy x1: \"0 / 0 / 0\"",
+    "exact": false
+   },
+   {
+    "check": "copy-eyebrows",
+    "msg": "7 eyebrow or kicker labels",
+    "fix": "one or two a page; a heading that names the thing needs no label over it (references/copy-tells.md)",
+    "widths": [],
+    "from": "copy",
+    "where": "(the copy)",
+    "exact": false
+   }
+  ],
+  "crashed": [
+   "consistency.mjs gave no report (exit 1: Error: Chrome exited early (4294930433))",
+   "check.mjs could not run (exit 2: check: Chrome did not start)"
+  ],
+  "seconds": {
+   "consistency": 1,
+   "layout": 17
+  }
+ },
+ "open": [],
+ "waived": [],
+ "warnCount": 2,
+ "note": "consistency.mjs gave no report (exit 1: Error: Chrome exited early (4294930433)); check.mjs could not run (exit 2: check: Chrome did not start)",
+ "at": "2026-11-15T14:31:56.737Z"
+}

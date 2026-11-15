@@ -13,6 +13,7 @@ The React + TypeScript application and three local services are implemented:
 | Simulated inputs | 8000 | A fresh simulated observation on every successful endpoint call. |
 | Astronaut profiles | 8001 | Registration, login/logout, profile updates, bearer-session validation. |
 | Assessment chatbot | 8002 | Persistent PHQ-9/GAD-7 sessions, scoring, follow-up flags, history, risk summaries, static explanations. |
+| Mission control | Planned | Simulated contact windows, durable outbound queue, and simulated Earth receipt. |
 
 Build a React + TypeScript application that lets an astronaut sign in, inspect simulated health and cabin measurements, complete a structured assessment, and review results. All essential functionality must run locally after deployment.
 
@@ -24,9 +25,9 @@ The simulator API provides deterministic demonstration rules and optional Isolat
 
 **Second flow:** generate a simulated sample → inspect measurements → select a body region → inspect relevant readings and recent samples.
 
-Include account/profile controls, assessment resume, result history, an environmental panel, explicit service availability, and selectable simulator scenarios. Continue model training and integration using the shared live/training distributions at a three-second cadence. Defer 3D anatomy, unrestricted AI conversation, professional portals, Earth dashboards, and gamification.
+Include account/profile controls, assessment resume, result history, an environmental panel, explicit service availability, and selectable simulator scenarios. Continue model training and integration using the shared live/training distributions at a three-second cadence. Defer 3D anatomy, unrestricted AI conversation, professional portals, a remote Earth dashboard, and gamification. The separate Mission Control outbound-transmission simulation is planned in [Mission Control Dashboard plan](Mission-Control-Dashboard-Implementation-Plan.md).
 
-Consent, retention, event-resolution authority, disclosure policies, hardware qualification, and model memory/latency budgets remain outside the hackathon backlog, as agreed. Basic login, ownership enforcement, accurate status displays, and deterministic backend scoring remain required.
+Basic login, ownership enforcement, accurate status displays, and deterministic backend scoring remain required. Mission Control additionally requires per-packet sharing consent, explicit outbound field selection, and a retention policy before it can handle real health data; these are scoped in its implementation plan.
 
 ## 3. Application Structure
 
@@ -158,6 +159,7 @@ Make SVG regions keyboard-operable with accessible names, selected states, and e
 | 5. Simulated monitoring | Explicit sample generation, demo-subject labeling, metric panels, bounded trends. | Exactly one intended request per action; all 20 fields represented, with unsupported fields unavailable. |
 | 6. Interactive body map | Responsive SVG, region selection, metric details, environmental separation. | All regions work with keyboard/touch and the dashboard remains usable without the graphic. |
 | 7. Browser verification and demo packaging | Responsive review, accessibility checks, error-state tests, local production serving instructions. | Full walkthrough passes at desktop/tablet/mobile sizes and without external internet. |
+| 8. Mission Control outbound simulation | Separate local service, simulated contact windows, user-approved structured packets, durable outbox, and receipt timeline. | Queued packets survive closed windows and restarts, resume without duplicates, exclude sensitive data by default, and never block local monitoring. See [the Mission Control plan](Mission-Control-Dashboard-Implementation-Plan.md). |
 
 Prefer one complete login-to-assessment flow before expanding the dashboard. Do not build a separate marketing landing page for this MVP.
 
@@ -183,7 +185,7 @@ Use component/integration tests for user flows and API error states, and a real 
 
 A presenter can start the local services and frontend, create an account, inspect a labeled simulated sample, navigate the body map, complete an assessment, see follow-up guidance when triggered, view the stored result, and resume a paused session after signing in again. Every screen distinguishes simulated inputs, missing data, static assistance, and backend-generated results.
 
-Deliver startup instructions, environment examples, the production build, and a short verification report. Pending capabilities must remain plainly identified: no free-form model conversation, autonomous main risk engine, real sensor integration, or Earth dashboard.
+Deliver startup instructions, environment examples, the production build, and a short verification report. Pending capabilities must remain plainly identified: no free-form model conversation, autonomous main risk engine, real sensor integration, remote Earth dashboard, or live radio link. Mission Control's simulated outbox is a separate planned increment, not part of the health-dashboard completion gate.
 
 ## References
 
@@ -192,4 +194,5 @@ Deliver startup instructions, environment examples, the production build, and a 
 - [Astronaut service](../../Project/astronaut_app/README.md).
 - [Chatbot service and API walkthrough](../../Project/chatbot_app/README.md).
 - [Chatbot implementation plan](../../Prototypes/chatbot/chatbot-implementation-plan.md).
+- [Mission Control Dashboard implementation plan](Mission-Control-Dashboard-Implementation-Plan.md).
 - [Design-taste-frontend skill](../../.agents/skills/design-taste-frontend/SKILL.md).

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en" data-type="software">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-type" content="software">
+  <meta name="site-kind" content="software">
+  <meta name="description" content="AstraHealth local simulated Earth receiver.">
+  <meta name="theme-color" content="#f4f6fb">
+  <title>AstraHealth · Earth Receiver</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="topline"></div>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="AstraHealth Earth receiver home"><span class="brand-mark">A</span><span>ASTRA<span class="brand-light">HEALTH</span></span></a>
+    <div class="topbar-right"><span class="sim-badge"><i></i>SIMULATED RECEIVER</span><span id="identity" class="identity">NOT AUTHENTICATED</span><button id="logout" class="text-button hidden" type="button">Sign out</button></div>
+  </header>
+
+  <main>
+    <section id="login-view" class="login-layout">
+      <div class="login-copy">
+        <div class="eyebrow">EARTH SIDE / RECEIVING CONSOLE</div>
+        <h1>Receive the update<br><span>after contact.</span></h1>
+        <p>View messages accepted by the local simulated receiver for your signed-in crew profile.</p>
+        <div class="orbit-mark" aria-hidden="true"><div class="orbit-ring"></div><div class="orbit-core">EARTH</div><div class="orbit-dot"></div></div>
+      </div>
+      <form id="login-form" class="login-card">
+        <div class="eyebrow">CREW ACCOUNT</div><h2>Sign in to receive</h2>
+        <label>Username<input id="username" autocomplete="username" required maxlength="40"></label>
+        <label>Password<input id="password" type="password" autocomplete="current-password" required maxlength="128"></label>
+        <button class="primary-button" type="submit">Open receiver <span>→</span></button>
+        <p id="login-error" class="error-text" role="alert"></p>
+        <p class="fine-print">This view is account-scoped. It shows only simulated packets received for the astronaut account you sign in with.</p>
+      </form>
+    </section>
+
+    <section id="console-view" class="hidden">
+      <div class="page-heading">
+        <div><div class="eyebrow">EARTH SIDE / INBOUND COMMS</div><h1>Received updates</h1><p>Messages appear here after the local contact simulator delivers them to its receiver.</p></div>
+        <div class="system-state"><span class="state-light"></span><span id="service-state">SIMULATED RECEIVER</span></div>
+      </div>
+      <div class="receiver-notice"><strong>Simulation only.</strong> This console does not connect to Earth or notify a real professional, support team, or emergency service.</div>
+      <div class="summary-grid">
+        <article class="panel contact-panel">
+          <div class="panel-head"><div><div class="eyebrow">INBOUND LINK</div><h2 id="link-title">Contact status</h2></div><span class="tag">SIMULATED</span></div>
+          <div class="contact-body"><div class="signal-visual" aria-hidden="true"><span class="signal-ring r1"></span><span class="signal-ring r2"></span><span class="signal-ring r3"></span><span class="signal-center">AH</span></div><div class="contact-facts"><div class="fact-label" id="contact-caption">NEXT CONTACT</div><div class="countdown" id="countdown">—</div><div class="fact-muted" id="window-time">Loading schedule…</div><div class="capacity-track"><span id="capacity-fill"></span></div><div class="fact-muted" id="capacity-label">Window capacity —</div></div></div>
+          <div class="contact-foot"><span>Received packets <b id="received-count">0</b></span><span>Receiver <b>LOCAL</b></span></div>
+        </article>
+        <article class="panel queue-panel"><div class="eyebrow">DELIVERY RECORD</div><h2>Latest receipt</h2><div class="receipt-highlight"><strong id="last-receipt">No messages received</strong><span id="last-receipt-time">Waiting for a simulated delivery</span></div><div class="queue-note"><span class="lime-dot"></span><span>Receipt is recorded only after simulated transfer completes.</span></div></article>
+      </div>
+      <section class="panel crew-telemetry-panel" aria-labelledby="crew-telemetry-title">
+        <div class="panel-head"><div><div class="eyebrow">REGISTERED CREW · SIMULATED INPUTS</div><h2 id="crew-telemetry-title">Live crew telemetry</h2><p class="crew-telemetry-intro">A shared snapshot of every registered crew member using the mission simulator.</p></div><span id="crew-refresh-state" class="refresh-state">LOADING CREW</span></div>
+        <div id="crew-summary" class="crew-summary" aria-label="Crew telemetry summary"><div><strong id="crew-total">—</strong><span>Registered crew</span></div><div><strong id="crew-reporting">—</strong><span>Reporting now</span></div><div><strong id="crew-valid">—</strong><span>Valid readings</span></div><div><strong id="crew-scenario">—</strong><span>Active scenario</span></div></div>
+        <h3 class="crew-subheading">Crew-wide metric averages</h3>
+        <div id="crew-metric-summary" class="crew-metric-grid" aria-live="polite"><div class="crew-loading"><i></i><i></i><i></i><i></i></div></div>
+        <h3 class="crew-subheading">Individual readings</h3>
+        <div id="crew-list" class="crew-list"><div class="empty-state">Loading registered crew…</div></div>
+        <p id="crew-updated-at" class="crew-updated-at">Metrics refresh every 3 seconds.</p>
+      </section>
+      <section class="panel receiver-panel">
+        <div class="panel-head"><div><div class="eyebrow">ACCOUNT-SCOPED RECEIVER ARCHIVE</div><h2>Inbound message archive</h2></div><span id="refresh-state" class="refresh-state">AUTO REFRESH · 3 SEC</span></div>
+        <div id="received-list" class="received-list"><div class="empty-state">Sign in to load received updates.</div></div>
+      </section>
+      <footer class="page-footer"><span>ASTRAHEALTH · SIMULATED EARTH RECEIVER</span><span>NO REAL EARTH LINK · ACCOUNT-SCOPED</span></footer>
+    </section>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

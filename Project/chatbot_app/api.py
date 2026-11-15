@@ -3,11 +3,12 @@ import hashlib
 import json
 import os
 import sqlite3
+from threading import BoundedSemaphore
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import FastAPI, Depends, Header, HTTPException
+from fastapi import FastAPI, Depends, Header, HTTPException, Query
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -15,12 +16,20 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from .assessments import VERSION, RULE_VERSION, SUPPORT, definition, score
 from .auth import IdentityClient, unauthorized
-from .models import (Start, Revision, Answer, Message, Definition, Session, Result,
-                     RiskSummary, AssistantReply, ErrorResponse)
+from .checkin_policy import evaluate as evaluate_checkin_trend
+from .model_adapter import (ModelUnavailable, configured as local_model_configured,
+                            enabled as local_conversation_enabled, language as conversation_language,
+                            RESPONSE_TIMEOUT_SECONDS, reply as local_model_reply)
+from .models import (Start, Revision, Answer, CheckInWrite, CheckIn, TodayCheckIn, CheckInTrend,
+                     Message, Definition, Session, Result, RiskSummary,
+                     AssistantReply, AssistantStatus, ConversationRequest, ConversationReply,
+                     ErrorResponse, RecommendationRequest, RecommendationResponse)
+from Project.recommendations_app.engine import evaluate as evaluate_recommendations
 from .storage import Store
 
 PREFIX = "/api/v1/chatbot"
 bearer = HTTPBearer(auto_error=False)
+model_inference_slot = BoundedSemaphore(1)
 
 
 def timestamp():
@@ -85,8 +94,8 @@ def check_revision(row, expected):
 def create_app(db_path=None, identity_resolver=None):
     store = Store(db_path or os.environ.get("CHATBOT_DB_PATH", Path(__file__).parent / "data" / "chatbot.db"))
     resolver = identity_resolver or IdentityClient(os.environ.get("ASTRONAUT_SERVICE_URL", "http://127.0.0.1:8001"))
-    app = FastAPI(title="Astronaut Assessment Chatbot", version="1.0.0", docs_url=None, redoc_url=None,
-                  description="Local structured screening demo with static explanations. No model, simulator, or external network dependency. Bearer tokens are verified with astronaut_app on every protected request.")
+    app = FastAPI(title="Astronaut Wellbeing Service", version="1.3.0", docs_url=None, redoc_url=None,
+                  description="Local structured check-ins and screening, with an optional stateless local-model conversation. Bearer tokens are verified with astronaut_app on every protected request.")
     app.state.store = store
     origins = [s.strip() for s in os.environ.get("CHATBOT_CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",") if s.strip()]
     app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["GET", "POST", "PUT"],
@@ -106,7 +115,7 @@ def create_app(db_path=None, identity_resolver=None):
 
     @app.exception_handler(RequestValidationError)
     async def bad_input(request, exc):
-        return JSONResponse(status_code=422, content={"error": {"code": "invalid_request", "message": "Invalid request fields or missing Idempotency-Key."}})
+        return JSONResponse(status_code=422, content={"error": {"code": "invalid_request", "message": "Invalid request fields."}})
 
     @app.exception_handler(sqlite3.Error)
     async def bad_storage(request, exc):
@@ -122,6 +131,58 @@ def create_app(db_path=None, identity_resolver=None):
     @app.get(PREFIX + "/assessments", response_model=list[Definition], responses=errors)
     def assessments(user=Depends(identity)):
         return [definition(code) for code in ("PHQ9", "GAD7")]
+
+    @app.get(PREFIX + "/check-ins/today", response_model=TodayCheckIn, responses=errors)
+    def today_check_in(user=Depends(identity)):
+        check_in_date = datetime.now(timezone.utc).date().isoformat()
+        with store.connect() as db:
+            row = db.execute("SELECT * FROM check_ins WHERE astronaut_id=? AND check_in_date=?",
+                             (user, check_in_date)).fetchone()
+            return {"check_in_date": check_in_date,
+                    "check_in": dict(row) if row else None}
+
+    @app.get(PREFIX + "/check-ins", response_model=list[CheckIn], responses=errors)
+    def check_in_history(user=Depends(identity), limit: int = Query(default=7, ge=1, le=30)):
+        with store.connect() as db:
+            rows = db.execute("SELECT * FROM check_ins WHERE astronaut_id=? "
+                               "ORDER BY check_in_date DESC LIMIT ?", (user, limit)).fetchall()
+            return [dict(row) for row in rows]
+
+    @app.get(PREFIX + "/check-ins/trend", response_model=CheckInTrend, responses=errors)
+    def check_in_trend(user=Depends(identity)):
+        today = datetime.now(timezone.utc).date()
+        with store.connect() as db:
+            rows = db.execute("SELECT check_in_date,mood_score,sleep_duration_hours FROM check_ins "
+                              "WHERE astronaut_id=? AND check_in_date>=? ORDER BY check_in_date",
+                              (user, (today - timedelta(days=9)).isoformat())).fetchall()
+            return evaluate_checkin_trend(rows, today, timestamp())
+
+    @app.put(PREFIX + "/check-ins/today", response_model=CheckIn, responses=errors)
+    def save_today_check_in(body: CheckInWrite, user=Depends(identity)):
+        check_in_date = datetime.now(timezone.utc).date().isoformat()
+        with store.connect(write=True) as db:
+            current = db.execute("SELECT * FROM check_ins WHERE astronaut_id=? AND check_in_date=?",
+                                  (user, check_in_date)).fetchone()
+            if current is None:
+                if body.expected_revision != 0:
+                    fail(409, "revision_conflict", "Today's check-in changed. Reload its current state before retrying.")
+                created_at = updated_at = timestamp()
+                revision = 1
+                db.execute("INSERT INTO check_ins VALUES (?,?,?,?,?,?,?)",
+                           (user, check_in_date, body.mood_score, body.sleep_duration_hours,
+                            revision, created_at, updated_at))
+            else:
+                if current["revision"] != body.expected_revision:
+                    fail(409, "revision_conflict", "Today's check-in changed. Reload its current state before retrying.")
+                revision = current["revision"] + 1
+                created_at = current["created_at"]
+                updated_at = timestamp()
+                db.execute("UPDATE check_ins SET mood_score=?, sleep_duration_hours=?, revision=?, updated_at=? "
+                           "WHERE astronaut_id=? AND check_in_date=?",
+                           (body.mood_score, body.sleep_duration_hours, revision, updated_at, user, check_in_date))
+            return {"check_in_date": check_in_date, "revision": revision,
+                    "mood_score": body.mood_score, "sleep_duration_hours": body.sleep_duration_hours,
+                    "created_at": created_at, "updated_at": updated_at}
 
     @app.post(PREFIX + "/sessions", response_model=Session, status_code=201, responses=errors)
     def start(body: Start, user=Depends(identity), idempotency_key: str = Header(min_length=1, max_length=128)):
@@ -264,6 +325,43 @@ def create_app(db_path=None, identity_resolver=None):
                     "assessment_summaries": records,
                     "follow_up": follow_up(bool(flag), "PHQ9" in latest), "rule_version": RULE_VERSION}
 
+    @app.post(PREFIX + "/recommendations/evaluate", response_model=RecommendationResponse,
+              responses={**errors, 503: {"model": ErrorResponse}})
+    def recommendations(body: RecommendationRequest, user=Depends(identity)):
+        """Evaluate stored structured wellbeing data plus explicitly shared dashboard/context inputs."""
+        with store.connect() as db:
+            latest = {}
+            for result_item in results_for(db, user):
+                latest.setdefault(result_item["assessment_code"], result_item)
+            flags = db.execute(
+                "SELECT f.session_id, f.created_at FROM flags f JOIN sessions s ON f.session_id=s.id "
+                "WHERE s.astronaut_id=? ORDER BY f.created_at DESC", (user,)
+            ).fetchall()
+            today = datetime.now(timezone.utc).date()
+            rows = db.execute(
+                "SELECT check_in_date,mood_score,sleep_duration_hours FROM check_ins "
+                "WHERE astronaut_id=? AND check_in_date>=? ORDER BY check_in_date",
+                (user, (today - timedelta(days=9)).isoformat()),
+            ).fetchall()
+            trend = evaluate_checkin_trend(rows, today, timestamp())
+            topics = body.conversation.topics if body.conversation and body.conversation.consent else []
+            profile_state = {
+                "assessments": list(latest.values()),
+                "follow_up_requested": bool(flags),
+                "flag_refs": [row["session_id"] for row in flags[:3]],
+                "updated_at": flags[0]["created_at"] if flags else max(
+                    (item["completed_at"] for item in latest.values()), default=None),
+                "check_in_status": trend["status"],
+                "check_in_policy": trend["policy_version"],
+                "check_in_observed_at": trend["evaluated_at"],
+            }
+        evaluated = evaluate_recommendations(
+            profile_state,
+            body.dashboard.model_dump() if body.dashboard else None,
+            topics,
+        )
+        return {**evaluated, "evaluated_at": timestamp()}
+
     @app.post(PREFIX + "/assistant/messages", response_model=AssistantReply, responses=errors)
     def assistant(body: Message, user=Depends(identity)):
         # Typed intents only: no unrestricted free-text chat or invented text-risk classifier.
@@ -285,11 +383,36 @@ def create_app(db_path=None, identity_resolver=None):
                 text = f"Your recorded score is {r['total_score']} of {r['maximum_score']} ({r['interpretation'].replace('_', ' ')}). This is a screening result, not a diagnosis. Discuss concerns with a qualified support person."
             return {"mode": "static", "model_available": False, "text": text, "follow_up": state["follow_up"]}
 
+    @app.get(PREFIX + "/assistant/status", response_model=AssistantStatus, responses=errors)
+    def assistant_status(user=Depends(identity)):
+        return {"conversation_enabled": local_conversation_enabled(),
+                "model_configured": local_model_configured(),
+                "language": conversation_language(),
+                "response_timeout_seconds": RESPONSE_TIMEOUT_SECONDS}
+
+    @app.post(PREFIX + "/assistant/conversation", response_model=ConversationReply,
+              responses={**errors, 503: {"model": ErrorResponse}})
+    def assistant_conversation(body: ConversationRequest, user=Depends(identity)):
+        if not body.consent:
+            fail(403, "consent_required", "Opt in before sending a message to the local model.")
+        if not local_conversation_enabled():
+            fail(503, "model_unavailable", "Local conversation is disabled or not configured. Structured check-ins remain available.")
+        if not model_inference_slot.acquire(blocking=False):
+            fail(503, "model_busy", "The local model is handling another conversation. Try again shortly.")
+        try:
+            text = local_model_reply(body.messages)
+        except ModelUnavailable:
+            fail(503, "model_unavailable", "The local model is unavailable. Structured check-ins remain available.")
+        finally:
+            model_inference_slot.release()
+        return {"mode": "local_model", "model_available": True, "text": text}
+
     @app.get("/health")
     def health():
         with store.connect() as db:
             db.execute("SELECT 1 FROM sessions LIMIT 1")
-        return {"status": "ok", "storage": "available", "assistant_mode": "static", "model_available": False,
+        return {"status": "ok", "storage": "available", "assistant_mode": "local_model" if local_conversation_enabled() else "static",
+                "model_configured": local_model_configured(),
                 "identity": "checked_on_each_authenticated_request"}
 
     return app

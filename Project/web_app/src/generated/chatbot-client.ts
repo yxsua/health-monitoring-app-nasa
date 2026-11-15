@@ -1,4 +1,4 @@
-import type { Definition, Start, Session, Result, Answer, Message, AssistantReply, RiskSummary } from './chatbot-types';
+import type { Definition, Start, Session, Result, Answer, Message, AssistantReply, AssistantStatus, ConversationRequest, ConversationReply, RiskSummary, CheckInWrite, CheckIn, TodayCheckIn, CheckInTrend, RecommendationRequest, RecommendationResponse } from './chatbot-types';
 
 export class ChatbotError extends Error {
   constructor(public status: number, public code: string, message: string) {
@@ -41,6 +41,13 @@ export function createChatbotClient(baseUrl: string, getToken: () => string | nu
     result: (sessionId: string) => request<Result>(`/sessions/${id(sessionId)}/result`),
     results: () => request<Result[]>('/results'),
     assistant: (body: Message) => request<AssistantReply>('/assistant/messages', 'POST', body),
+    assistantStatus: () => request<AssistantStatus>('/assistant/status'),
+    conversation: (body: ConversationRequest) => request<ConversationReply>('/assistant/conversation', 'POST', body),
+    evaluateRecommendations: (body: RecommendationRequest) => request<RecommendationResponse>('/recommendations/evaluate', 'POST', body),
     riskSummary: (astronautId: string) => request<RiskSummary>(`/astronauts/${id(astronautId)}/risk-summary`),
+    todayCheckIn: () => request<TodayCheckIn>('/check-ins/today'),
+    checkInHistory: (limit = 7) => request<CheckIn[]>(`/check-ins?limit=${limit}`),
+    checkInTrend: () => request<CheckInTrend>('/check-ins/trend'),
+    saveTodayCheckIn: (body: CheckInWrite) => request<CheckIn>('/check-ins/today', 'PUT', body),
   };
 }

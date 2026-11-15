@@ -5,7 +5,7 @@ import os
 import secrets
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
 
@@ -14,7 +14,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 PREFIX = "/api/v1"
 ITERATIONS = 600_000
@@ -52,7 +52,45 @@ class Credentials(Input):
         return value.lower()
 
 
-class Registration(Credentials):
+class PersonalDetails(Input):
+    age_years: int | None = Field(default=None, ge=0, le=120)
+    birthdate: date | None = None
+    gender: str | None = Field(default=None, max_length=80)
+    pronouns: str | None = Field(default=None, max_length=80)
+    blood_type: str | None = Field(default=None, pattern=r"^(A|B|AB|O)[+-]$")
+    allergies: str | None = Field(default=None, max_length=2000)
+    medical_conditions: str | None = Field(default=None, max_length=2000)
+    medications: str | None = Field(default=None, max_length=2000)
+    emergency_contact_name: str | None = Field(default=None, max_length=100)
+    emergency_contact_relationship: str | None = Field(default=None, max_length=80)
+    emergency_contact_phone: str | None = Field(default=None, max_length=40)
+
+    @field_validator("gender", "pronouns", "allergies", "medical_conditions", "medications",
+                     "emergency_contact_name", "emergency_contact_relationship", "emergency_contact_phone")
+    @classmethod
+    def clean_optional_text(cls, value):
+        if value is None:
+            return None
+        value = value.strip()
+        return value or None
+
+    @field_validator("birthdate")
+    @classmethod
+    def valid_birthdate(cls, value):
+        if value is not None and value >= now().date():
+            raise ValueError("Birthdate must be in the past")
+        if value is not None and (now().date() - value).days > 120 * 366:
+            raise ValueError("Birthdate is outside the supported range")
+        return value
+
+    @model_validator(mode="after")
+    def one_age_representation(self):
+        if self.age_years is not None and self.birthdate is not None:
+            raise ValueError("Provide age or birthdate, not both")
+        return self
+
+
+class Registration(Credentials, PersonalDetails):
     display_name: str = Field(min_length=1, max_length=100)
     mission: str | None = Field(default=None, max_length=100)
 
@@ -67,7 +105,7 @@ class Registration(Credentials):
         return value
 
 
-class ProfileUpdate(Input):
+class ProfileUpdate(PersonalDetails):
     display_name: str | None = Field(default=None, min_length=1, max_length=100)
     mission: str | None = Field(default=None, max_length=100)
 
@@ -87,6 +125,17 @@ class Profile(BaseModel):
     username: str
     display_name: str
     mission: str | None
+    age_years: int | None
+    birthdate: date | None
+    gender: str | None
+    pronouns: str | None
+    blood_type: str | None
+    allergies: str | None
+    medical_conditions: str | None
+    medications: str | None
+    emergency_contact_name: str | None
+    emergency_contact_relationship: str | None
+    emergency_contact_phone: str | None
     created_at: str
     updated_at: str
 
@@ -104,6 +153,12 @@ class SessionIdentity(BaseModel):
     expires_at: str
 
 
+class CrewRosterMember(BaseModel):
+    astronaut_id: str
+    display_name: str
+    mission: str | None
+
+
 class ErrorDetail(BaseModel):
     code: str
     message: str
@@ -118,7 +173,12 @@ def fail(status, code, message):
 
 
 def profile(row):
-    return {key: row[key] for key in Profile.model_fields}
+    result = {key: row[key] for key in Profile.model_fields}
+    if result["birthdate"]:
+        born = date.fromisoformat(result["birthdate"])
+        today = now().date()
+        result["age_years"] = today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+    return result
 
 
 def create_app(db_path=None):
@@ -137,12 +197,26 @@ def create_app(db_path=None):
             connection.close()
 
     with database() as db:
+        version = db.execute("PRAGMA user_version").fetchone()[0]
+        if version > 2:
+            raise RuntimeError("Unsupported astronaut database version")
         db.executescript("""
             CREATE TABLE IF NOT EXISTS astronauts (
                 astronaut_id TEXT PRIMARY KEY,
                 username TEXT NOT NULL UNIQUE,
                 display_name TEXT NOT NULL,
                 mission TEXT,
+                age_years INTEGER CHECK(age_years BETWEEN 0 AND 120),
+                birthdate TEXT,
+                gender TEXT,
+                pronouns TEXT,
+                blood_type TEXT,
+                allergies TEXT,
+                medical_conditions TEXT,
+                medications TEXT,
+                emergency_contact_name TEXT,
+                emergency_contact_relationship TEXT,
+                emergency_contact_phone TEXT,
                 password_salt TEXT NOT NULL,
                 password_hash TEXT NOT NULL,
                 created_at TEXT NOT NULL,
@@ -155,12 +229,23 @@ def create_app(db_path=None):
                 expires_at TEXT NOT NULL
             );
             CREATE INDEX IF NOT EXISTS sessions_astronaut ON sessions(astronaut_id);
-            PRAGMA user_version=1;
         """)
+        existing = {row[1] for row in db.execute("PRAGMA table_info(astronauts)")}
+        migrations = {
+            "age_years": "INTEGER CHECK(age_years BETWEEN 0 AND 120)",
+            "birthdate": "TEXT", "gender": "TEXT", "pronouns": "TEXT", "blood_type": "TEXT",
+            "allergies": "TEXT", "medical_conditions": "TEXT", "medications": "TEXT",
+            "emergency_contact_name": "TEXT", "emergency_contact_relationship": "TEXT",
+            "emergency_contact_phone": "TEXT",
+        }
+        for column, definition in migrations.items():
+            if column not in existing:
+                db.execute(f"ALTER TABLE astronauts ADD COLUMN {column} {definition}")
+        db.execute("PRAGMA user_version=2")
 
-    app = FastAPI(title="Astronaut Profiles and Authentication", version="1.0.0",
+    app = FastAPI(title="Astronaut Profiles and Authentication", version="1.1.0",
                   docs_url=None, redoc_url=None,
-                  description="Local hackathon identity service. Register, log in, and use the returned bearer token to access your profile. Other local services can validate that token with GET /api/v1/auth/session. No cloud dependency.")
+                  description="Local hackathon identity service with optional user-owned profile and health details. Register, log in, and use the returned bearer token to access your profile. Other local services can validate that token with GET /api/v1/auth/session. No cloud dependency.")
     app.state.db_path = path
     origins = [s.strip() for s in os.environ.get("ASTRONAUT_CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",") if s.strip()]
     app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["GET", "POST", "PATCH"],
@@ -208,8 +293,16 @@ def create_app(db_path=None):
         identity, created = str(uuid4()), timestamp(now())
         try:
             with database() as db:
-                db.execute("INSERT INTO astronauts VALUES (?,?,?,?,?,?,?,?)",
-                           (identity, body.username, body.display_name, body.mission, salt, hashed, created, created))
+                db.execute("""INSERT INTO astronauts (
+                    astronaut_id,username,display_name,mission,age_years,birthdate,gender,pronouns,blood_type,
+                    allergies,medical_conditions,medications,emergency_contact_name,emergency_contact_relationship,
+                    emergency_contact_phone,password_salt,password_hash,created_at,updated_at
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                           (identity, body.username, body.display_name, body.mission, body.age_years,
+                            body.birthdate.isoformat() if body.birthdate else None, body.gender, body.pronouns,
+                            body.blood_type, body.allergies, body.medical_conditions, body.medications,
+                            body.emergency_contact_name, body.emergency_contact_relationship,
+                            body.emergency_contact_phone, salt, hashed, created, created))
                 row = db.execute("SELECT * FROM astronauts WHERE astronaut_id=?", (identity,)).fetchone()
         except sqlite3.IntegrityError:
             fail(409, "username_taken", "Username is already registered.")
@@ -249,13 +342,26 @@ def create_app(db_path=None):
     def update(body: ProfileUpdate, auth=Depends(authenticated)):
         changes = body.model_dump(exclude_unset=True)
         if not changes or ("display_name" in changes and changes["display_name"] is None):
-            fail(422, "invalid_request", "Supply a display name or mission; display name cannot be null.")
+            fail(422, "invalid_request", "Supply at least one profile field; display name cannot be null.")
+        if changes.get("birthdate") is not None:
+            changes["birthdate"] = changes["birthdate"].isoformat()
+            changes["age_years"] = None
+        elif changes.get("age_years") is not None:
+            changes["birthdate"] = None
         changes["updated_at"] = timestamp(now())
         with database() as db:
             columns = ", ".join(f"{field}=?" for field in changes)  # Pydantic allowlist only
             db.execute(f"UPDATE astronauts SET {columns} WHERE astronaut_id=?", (*changes.values(), auth[0]["astronaut_id"]))
             row = db.execute("SELECT * FROM astronauts WHERE astronaut_id=?", (auth[0]["astronaut_id"],)).fetchone()
         return profile(row)
+
+    @app.get(PREFIX + "/astronauts/crew", response_model=list[CrewRosterMember], responses=protected, tags=["Profiles"])
+    def crew_roster(_auth=Depends(authenticated)):
+        # The Earth-side simulated board needs only an identifier and display labels to
+        # request synthetic telemetry. Never include private health or emergency fields.
+        with database() as db:
+            rows = db.execute("SELECT astronaut_id,display_name,mission FROM astronauts ORDER BY created_at,display_name").fetchall()
+        return [dict(row) for row in rows]
 
     @app.get("/health", tags=["Operations"])
     def health():

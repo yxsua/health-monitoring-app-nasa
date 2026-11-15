@@ -1,6 +1,6 @@
 # Astronaut profiles and authentication
 
-Independent local FastAPI service for the hackathon. Stores profiles and sessions in SQLite. Other services use its stable `astronaut_id`; they do not share its database.
+Independent local FastAPI service for the hackathon. Stores profiles and sessions in SQLite. Other services use its stable `astronaut_id`; they do not share its database. Profile medical and emergency details are optional and returned only to the authenticated profile owner.
 
 ## Start
 
@@ -12,7 +12,7 @@ Project/astronaut_app/.venv/Scripts/python.exe -m pip install -r Project/astrona
 Project/astronaut_app/.venv/Scripts/python.exe -m uvicorn Project.astronaut_app.api:create_app --factory --host 127.0.0.1 --port 8001
 ```
 
-The existing simulator virtual environment also has the required dependencies and can run the same command during the hackathon. Runtime works without internet. `/openapi.json` serves the API contract; hosted documentation assets are disabled. The default SQLite file is `Project/astronaut_app/data/astronauts.db`. Set `ASTRONAUT_DB_PATH` to use another local path. Schema initialization is idempotent (version 1).
+The existing simulator virtual environment also has the required dependencies and can run the same command during the hackathon. Runtime works without internet. `/openapi.json` serves the API contract; hosted documentation assets are disabled. The default SQLite file is `Project/astronaut_app/data/astronauts.db`. Set `ASTRONAUT_DB_PATH` to use another local path. Schema initialization is idempotent and upgrades version 1 databases to version 2 without changing existing account credentials or IDs.
 
 ## Endpoints
 
@@ -23,6 +23,7 @@ The existing simulator virtual environment also has the required dependencies an
 | GET | `/api/v1/auth/session` | Validate a bearer token and return identity plus expiry. |
 | POST | `/api/v1/auth/logout` | Revoke the current token; returns 204. |
 | GET | `/api/v1/astronauts/me` | Read the authenticated astronaut's profile. |
+| GET | `/api/v1/astronauts/crew` | Return the authenticated demo crew roster with astronaut ID, display name, and mission only. |
 | PATCH | `/api/v1/astronauts/me` | Change display name and/or mission. |
 | GET | `/health` | Check local database availability. |
 
@@ -37,9 +38,13 @@ Registration body:
 }
 ```
 
-Login uses only `username` and `password`. Usernames are case-insensitive, 3–40 ASCII letters, numbers, dots, hyphens or underscores. Passwords are 8–128 characters. Profile updates cannot change the UUID, username, or password. `mission: null` clears the mission; omitted fields remain unchanged.
+Login uses only `username` and `password`. Usernames are case-insensitive, 3–40 ASCII letters, numbers, dots, hyphens or underscores. Passwords are 8–128 characters. Profile updates cannot change the UUID, username, or password. `mission: null` clears the mission; omitted fields remain unchanged. Registration and profile updates accept optional age or birthdate, gender, pronouns, blood type, allergies, medical conditions, medications, and emergency contact details. Age and birthdate are mutually exclusive: when a birthdate is provided, the API calculates the current age; users may provide age instead to avoid sharing an exact birthdate. All health and emergency fields can be left blank or cleared.
+
+These optional fields are sensitive profile data. Share only information appropriate for this local demo. The API does not use them to make diagnoses or medical recommendations, and an emergency contact is not notified by the service. Configure appropriate database access, backups, and retention before using real medical data.
 
 Authenticated requests send `Authorization: Bearer <access_token>`. Responses never expose password hashes. Passwords use salted PBKDF2-HMAC-SHA256; only SHA-256 digests of random session tokens are stored. Sessions and profiles survive restarts. Logout invalidates one session; other independently issued sessions remain valid. Expired sessions return 401.
+
+The crew roster requires a valid session and returns only the fields used to label synthetic mission telemetry. It does not return profile health details or emergency contacts.
 
 Errors use `{"error":{"code":"...","message":"..."}}`: 401 invalid credentials/session, 409 duplicate username, 422 invalid input, 503 unavailable storage. Validation errors do not echo submitted passwords. Responses use `Cache-Control: no-store`.
 

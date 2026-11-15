@@ -12,9 +12,129 @@ export type AssistantReply = {
   "follow_up": FollowUp;
 };
 
+export type AssistantStatus = {
+  "conversation_enabled": boolean;
+  "model_configured": boolean;
+  "language": "en" | "es";
+  "response_timeout_seconds": number;
+};
+
 export type Band = {
   "minimum": number;
   "code": string;
+};
+
+export type CheckIn = {
+  "check_in_date": string;
+  "revision": number;
+  "mood_score": number;
+  "sleep_duration_hours": number;
+  "created_at": string;
+  "updated_at": string;
+};
+
+export type CheckInTrend = {
+  "policy_version": string;
+  "status": "insufficient_data" | "no_pattern" | "check_in_suggested";
+  "evaluated_at": string;
+  "baseline_days": number;
+  "recent_days": number;
+  "baseline_mood_mean": number | null;
+  "recent_mood_mean": number | null;
+  "baseline_sleep_mean_hours": number | null;
+  "recent_sleep_mean_hours": number | null;
+  "message": string;
+};
+
+export type CheckInWrite = {
+  "expected_revision": number;
+  "mood_score": number;
+  "sleep_duration_hours": number;
+};
+
+export type ConversationReply = {
+  "mode": "local_model";
+  "model_available": true;
+  "text": string;
+};
+
+export type ConversationRequest = {
+  "consent": true;
+  "messages": Array<ConversationTurn>;
+};
+
+export type ConversationTurn = {
+  "role": "user" | "assistant";
+  "content": string;
+};
+
+export type RecommendationEvidence = {
+  field: string;
+  value: number | null;
+  unit: string;
+  quality: "valid" | "missing" | "invalid";
+};
+
+export type DashboardAlert = {
+  code: string;
+  severity: "caution" | "warning" | "critical";
+  system: string;
+  message: string;
+  evidence: Array<RecommendationEvidence>;
+};
+
+export type DashboardRules = {
+  status: "available" | "warming_up" | "insufficient_data" | "unavailable";
+  alerts: Array<DashboardAlert>;
+};
+
+export type DashboardModel = {
+  status: "available" | "warming_up" | "insufficient_data" | "unavailable";
+  is_anomaly?: boolean | null;
+  model_version?: string | null;
+};
+
+export type DashboardForecast = DashboardModel & {
+  target_time?: string | null;
+};
+
+export type DashboardContext = {
+  run_id: string;
+  scenario_id: "normal" | "solar_event" | "high_co2" | "prolonged_isolation";
+  source_subject_id: "A01" | "AST-001";
+  record_id: string;
+  observed_at: string;
+  rules: DashboardRules;
+  anomaly: DashboardModel;
+  forecast: DashboardForecast;
+};
+
+export type ConversationContext = {
+  consent: true;
+  topics: Array<"sleep_rest" | "stress_support" | "exercise_recovery" | "cabin_conditions" | "human_support">;
+};
+
+export type RecommendationRequest = {
+  dashboard?: DashboardContext | null;
+  conversation?: ConversationContext | null;
+};
+
+export type Recommendation = {
+  recommendation_id: string;
+  priority: "routine" | "caution" | "warning" | "critical";
+  title: string;
+  action: string;
+  rationale: string;
+  source_scope: "astronaut_profile" | "simulated_fixture" | "user_confirmed_context" | "app_usage";
+  source_refs: Array<string>;
+  observed_at: string | null;
+  evidence: Array<RecommendationEvidence>;
+};
+
+export type RecommendationResponse = {
+  policy_version: string;
+  evaluated_at: string;
+  recommendations: Array<Recommendation>;
 };
 
 export type Definition = {
@@ -112,5 +232,10 @@ export type Session = {
 export type Start = {
   "assessment_code": "PHQ9" | "GAD7";
   "assessment_version": string;
+};
+
+export type TodayCheckIn = {
+  "check_in_date": string;
+  "check_in": CheckIn | null;
 };
 

@@ -2,7 +2,7 @@
 
 Independent FastAPI service on port 8002. It authenticates against `astronaut_app`, owns a separate SQLite database, and never calls the simulator. Runs offline after installing dependencies.
 
-Implemented: versioned English PHQ-9/GAD-7 scored items, persistent sessions and answers, pause/resume/cancel, deterministic scoring, immediate follow-up flags, result history, read-only risk summaries, and static explanations. The React UI and a trained conversational model are not implemented in this increment.
+Implemented: versioned English PHQ-9/GAD-7 scored items, persistent sessions and answers, pause/resume/cancel, deterministic scoring, immediate follow-up flags, result history, private daily mood/sleep check-ins, personal trend prompts, read-only risk summaries, static explanations, and an optional stateless Ollama conversation adapter.
 
 ## Run from the repository root
 
@@ -12,7 +12,7 @@ Project/chatbot_app/.venv/Scripts/python.exe -m pip install -r Project/chatbot_a
 Project/chatbot_app/.venv/Scripts/python.exe -m uvicorn Project.chatbot_app.api:create_app --factory --host 127.0.0.1 --port 8002
 ```
 
-The existing simulator virtual environment already has these dependencies and can run the same module. Start the astronaut service in another terminal on port 8001 using its README, then register/login there. Pass that bearer token with every protected chatbot request. Identity is revalidated on every request, so logout immediately removes access. Identity-service failure returns 503; it does not bypass authentication. `/health` checks local storage only and reports static-assistant mode, not identity readiness.
+The existing simulator virtual environment already has these dependencies and can run the same module. Start the astronaut service in another terminal on port 8001 using its README, then register/login there. Pass that bearer token with every protected chatbot request. Identity is revalidated on every request, so logout immediately removes access. Identity-service failure returns 503; it does not bypass authentication. `/health` checks local storage and configured assistant mode, not model readiness or identity readiness.
 
 Configuration:
 
@@ -21,8 +21,12 @@ Configuration:
 | `CHATBOT_DB_PATH` | `Project/chatbot_app/data/chatbot.db` |
 | `ASTRONAUT_SERVICE_URL` | `http://127.0.0.1:8001` |
 | `CHATBOT_CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` |
+| `CHATBOT_LOCAL_MODEL_URL` | unset (local conversation disabled) |
+| `CHATBOT_LOCAL_MODEL_NAME` | unset (local conversation disabled) |
+| `CHATBOT_CONVERSATION_ENABLED` | `false` (explicit operator enablement required) |
+| `CHATBOT_CONVERSATION_LANGUAGE` | `en` (`en` or `es`) |
 
-Keep the identity URL on your trusted onboard/local service. No runtime CDN, model download, or cloud inference is used. Browser Swagger/ReDoc pages are disabled; `/openapi.json` remains available.
+Keep the identity and model URLs on trusted onboard/local services. No runtime CDN, model download, or cloud inference is used; an operator must provision a local model. Browser Swagger/ReDoc pages are disabled; `/openapi.json` remains available.
 
 ## API walkthrough
 
@@ -47,6 +51,12 @@ All paths below start with `/api/v1/chatbot`; requests carry `Authorization: Bea
 5. After every answer, `POST /sessions/{id}/complete` with `{"expected_revision":n}` and a new `Idempotency-Key`. Returns the stored result, commits score and state together, and rejects incomplete forms.
 6. `GET /sessions/{id}/result`, `GET /results`, or `GET /sessions` to retrieve your result, history, or resumable sessions. Results are immutable.
 7. `GET /astronauts/{your_uuid}/risk-summary` to integrate with the main dashboard. Another user's UUID returns 403.
+8. `GET /check-ins/today` to retrieve today's UTC check-in (or `check_in: null` before submission); `PUT /check-ins/today` to save or correct the daily values; `GET /check-ins?limit=7` to review recent entries; `GET /check-ins/trend` for a transparent, self-relative prompt state.
+9. `POST /recommendations/evaluate` to combine the caller's latest structured assessment/check-in state with optional dashboard analysis and explicitly shared conversation topics. The request accepts no transcript and the endpoint persists no recommendation history. `source_scope` identifies profile, simulated-fixture, and user-confirmed-context recommendations independently; fixture readings are never joined to the signed-in astronaut's profile.
+
+The daily self-check-in stores a 1–5 mood rating and sleep duration in hours for the last main sleep period. The first write uses `expected_revision: 0`; corrections use the returned revision. Only one entry is stored per astronaut per UTC date; same-day corrections increment its revision. Entries are kept separately from scored assessments and risk summaries. The values are descriptive self-reports, not a diagnosis or safety determination.
+
+The trend prompt policy (`self-check-in-trend-1.0.0`) requires one entry on each of the latest 10 consecutive UTC days. It compares the first seven days with the most recent three and returns `check_in_suggested` only when both recent mean mood is at least 1 point lower and recent mean sleep is at least 1 hour lower than the personal baseline. A missing day returns `insufficient_data`; other complete windows return `no_pattern`. This transparent demo heuristic is not a validated or clinical threshold. It only suggests an optional conversation with a qualified support person. It does not create a risk flag, contact anyone, infer a condition, or establish safety. The API returns window means and policy version so the UI can explain the prompt.
 
 Creation and completion retries with the same key/body replay the original response without duplicate records. A reused key with a different body returns 409. Replayed creation returns the original creation response; fetch the session to obtain its latest state. Identity checks always precede replay. Keys are scoped to astronaut and operation and stored persistently.
 
@@ -56,7 +66,15 @@ Creation and completion retries with the same key/body replay the original respo
 {"session_id":"<session-id>","intent":"instructions"}
 ```
 
-Other intents: `question` (requires a valid `question_id`), `result` (requires a scored session), and `support`. Responses explicitly return `mode: "static"` and `model_available: false`. The endpoint has no assessment-write capability and does not accept free-form message text. This avoids presenting a nonexistent language model or text-risk classifier as working functionality. A future local adapter can expand this contract deliberately.
+Other intents: `question` (requires a valid `question_id`), `result` (requires a scored session), and `support`. Responses explicitly return `mode: "static"` and `model_available: false`. The endpoint has no assessment-write capability and does not accept free-form message text.
+
+The separate optional conversation uses `GET /assistant/status` and `POST /assistant/conversation`. The latter requires `{"consent":true,"messages":[{"role":"user","content":"..."}]}` with at most 12 alternating turns, 1,200 characters per turn, and a user message last. It requires all three operator settings: `CHATBOT_CONVERSATION_ENABLED=true`, `CHATBOT_LOCAL_MODEL_URL`, and `CHATBOT_LOCAL_MODEL_NAME`; otherwise the API returns 503. The adapter calls the configured Ollama `/api/chat` endpoint with a 45-second hard timeout and allows one inference in flight per chatbot process. The pilot language is configured as English (`en`) by default, with Spanish (`es`) also supported. The UI shows which language is set.
+
+Conversation-derived recommendation context is a separate opt-in. The UI lets the astronaut choose broad topics to share; it stores only those tags in per-profile browser session storage and submits them with explicit consent. Chat messages are not retained for, or forwarded to, the recommendation evaluator. The deterministic policy (`recommendations-demo-v1`) preserves rule severity, treats anomaly and forecast outputs as advisory, and labels simulated fixture recommendations distinctly. Its suggestions are informational and are not a diagnosis or treatment protocol. The existing `Project/recomendations_app` directory is a legacy standalone prototype and is not called by this integration because its action catalog and thresholds require domain review.
+
+For a hardware-light CPU benchmark candidate, the root Compose file includes an opt-in `local-model` profile using Ollama and `llama3.2:3b`. Ollama lists this quantized model at approximately 2 GB and documents English and Spanish support; it carries Meta's Llama Community License, which the operator must review before use ([Ollama model card](https://ollama.com/library/llama3.2:3b)). The runtime image is approximately 3 GB, so budget about 5 GB for the initial image and weights, plus Docker overhead. Copy `.env.example` to `.env`, then run `docker compose --profile local-model up -d`; this pulls the Ollama runtime and model weights into the `ollama-models` volume. The profile is not enabled by default. After the model pull completes, collect latency with `docker compose exec chatbot python -m Project.chatbot_app.benchmark_local_model`. The harness warms the model, then runs 30 synthetic prompts in the selected language and prints timing only, never raw prompts or replies. Repeat with `CHATBOT_CONVERSATION_LANGUAGE=es` and `en` to measure both languages. The candidate is for local engineering evaluation only; the repo does not assert its conversational quality or mission approval.
+
+The UI has a separate opt-in; conversation text stays in browser memory and is sent to the chatbot API with the user's bearer token. The chatbot service forwards only the conversation to the configured model endpoint; it does not persist transcripts, forward the bearer token to the model, send text to an external provider, attach check-ins or assessment results, or include text in summaries. Reloading or ending the conversation clears browser-held messages. Review the model host's own logging and retention settings before enabling it. An unavailable model returns 503 while check-ins remain available. The model is instructed not to diagnose, score, classify risk, prescribe treatment, or claim to contact anyone; human support guidance remains visible, and generated text is not used as a safety decision.
 
 Errors follow the identity service envelope: `{"error":{"code":"...","message":"..."}}`. Responses use `Cache-Control: no-store`. No caller-supplied astronaut identity is accepted for session ownership.
 
@@ -93,4 +111,6 @@ Project/chatbot_app/.venv/Scripts/python.exe -m unittest Project.chatbot_app.tes
 
 Tests use temporary databases and the real astronaut service through an in-process HTTP transport. They cover scoring boundaries, invalid/incomplete responses, authorization and revoked tokens, concurrent writes, idempotency, restart recovery, follow-up persistence, summaries, and fallback behavior. No external network is required by the service or test cases.
 
-Next increment: build the React chatbot panel using the exported client, including login handoff, question cards, pause/resume, result history, and dashboard summary polling. Local AI remains optional and is not required to demonstrate this backend.
+Deployment recommendation: use the existing single-node Docker Compose stack on an x86-64 Linux host for the prototype and a small, access-controlled pilot; keep it CPU-only and inside the mission network. The stack already provides persistent volumes and service health checks, and the UI currently binds to localhost by default. For remote pilot access, put it behind the mission's TLS reverse proxy/VPN and back up the persistent volumes. Agree on check-in retention and access policy before expanding beyond the pilot. Continue using UTC days until the mission's canonical time zone is specified. Before selecting a local conversational model or setting hardware limits, benchmark the complete service stack and agree on RAM, storage, language, and response-time targets.
+
+Operational pilot gate: keep authenticated astronaut-only API access and the one-inference limit; keep transcript persistence off and verify the Ollama host does not retain prompts in its logs; configure only `en` or `es`; and benchmark on the target machine. The initial performance target is p95 reply latency at or below 20 seconds, with a 45-second request timeout. Review representative replies manually for language quality, unsafe advice, diagnosis claims, and false claims of escalation. Keep `CHATBOT_CONVERSATION_ENABLED=false` until model/license review and the on-target language, latency, and response review are complete. No hardware benchmark was run in this development workspace.

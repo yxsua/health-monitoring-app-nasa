@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 're
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { apiRequest } from '../../services/http';
-import type { RiskSummary } from '../../generated/chatbot-types';
+import type { RecommendationResponse, RiskSummary } from '../../generated/chatbot-types';
 import type { AnalysisResponse, Observation, Reading, SimulationResponse } from './types';
 
 const scenarioOptions = [
@@ -207,6 +207,26 @@ export function Dashboard() {
           });
           if (subjectRef.current === requestedSubject && currentRecordIdRef.current === observation.record_id) {
             setAnalysis({ recordId: observation.record_id, state: 'ready', result: analyzed });
+            try {
+              let shared: { consent?: boolean; topics?: string[] } | null = null;
+              try { shared = profile ? JSON.parse(window.sessionStorage.getItem(`astrahealth-shared-topics:${profile.astronaut_id}`) ?? 'null') as { consent?: boolean; topics?: string[] } | null : null; } catch { /* Ignore malformed optional sharing preferences. */ }
+              const recommendationResult = await apiRequest<RecommendationResponse>('/api/v1/chatbot/recommendations/evaluate', token, {
+                method: 'POST',
+                body: JSON.stringify({
+                  dashboard: {
+                    run_id: analyzed.run_id, scenario_id: analyzed.scenario_id, source_subject_id: analyzed.astronaut_id,
+                    record_id: analyzed.record_id, observed_at: analyzed.observed_at,
+                    rules: { status: analyzed.rules.status, alerts: analyzed.rules.alerts },
+                    anomaly: { status: analyzed.anomaly.status, is_anomaly: analyzed.anomaly.is_anomaly, model_version: analyzed.anomaly.model_version },
+                    forecast: { status: analyzed.forecast.status, target_time: analyzed.forecast.target_time, model_version: analyzed.forecast.model_version },
+                  },
+                  ...(shared?.consent && shared.topics?.length ? { conversation: { consent: true, topics: shared.topics } } : {}),
+                }),
+              });
+              if (subjectRef.current === requestedSubject && currentRecordIdRef.current === observation.record_id) {
+                recommendationResult.recommendations.forEach(item => window.dispatchEvent(new CustomEvent('astrahealth:recommendation', { detail: item })));
+              }
+            } catch { /* Recommendation service can be unavailable without interrupting live readings. */ }
           }
         } catch (reason) {
           if (subjectRef.current === requestedSubject && currentRecordIdRef.current === observation.record_id) {
@@ -218,7 +238,7 @@ export function Dashboard() {
       if (liveRef.current) setFeedState('error');
       setFeedMessage(reason instanceof Error ? reason.message : 'The simulated inputs service is unavailable.');
     } finally { inFlightRef.current = false; }
-  }, [scenarioReady]);
+  }, [profile, scenarioReady, token]);
 
   const pauseFeed = useCallback((message = 'Live updates paused.') => {
     liveRef.current = false;
@@ -310,7 +330,7 @@ export function Dashboard() {
 
   return <main className="page-content dashboard-content">
     <div className="alert-stack" aria-live="assertive" aria-label="Recent alerts">{notifications.map(alert => <article className={`alert-toast alert-toast--${alert.level}`} key={alert.id}><StateIcon risk={alert.level}/><div><strong>{alert.title}</strong><span>{alert.detail}</span></div><button type="button" aria-label="Dismiss alert" onClick={() => setNotifications(previous => previous.filter(item => item.id !== alert.id))}>×</button></article>)}</div>
-    <div className="page-heading dashboard-heading"><div><p className="eyebrow">MISSION HEALTH · OVERVIEW</p><h1>Monitoring overview</h1><p className="lead">Measurements and assessment status for {profile?.display_name}.</p></div><div className="dashboard-heading__meta"><div className="mission-chip"><span className="status-dot" />{profile?.mission || 'Mission not set'}</div><div className="live-control"><span className={`live-indicator live-indicator--${feedState}`}><i aria-hidden="true" />{feedState === 'live' ? 'Live simulated inputs' : feedState === 'connecting' ? 'Connecting' : feedState === 'error' ? 'Service unavailable' : 'Updates paused'}</span>{live ? <button className="button button--secondary" onClick={() => pauseFeed()}>Pause live feed</button> : <button className="button button--primary" onClick={resumeFeed}>Resume live feed</button>}</div></div></div>
+    <div className="page-heading dashboard-heading"><div><p className="eyebrow">MISSION HEALTH · OVERVIEW</p><h1>Monitoring overview</h1><p className="lead">Measurements and assessment status for {profile?.display_name}.</p></div><div className="dashboard-heading__meta"><div className="mission-chip"><span className="status-dot" />{profile?.mission || 'Mission not set'}</div><div className="live-control"><span className={`live-indicator live-indicator--${feedState}`}><i aria-hidden="true" />{feedState === 'live' ? 'Live simulated inputs' : feedState === 'connecting' ? 'Connecting' : feedState === 'error' ? 'Service unavailable' : 'Updates paused'}</span><Link className="button button--primary" to="/mission-control">Messages &amp; support</Link>{live ? <button className="button button--secondary" onClick={() => pauseFeed()}>Pause live feed</button> : <button className="button button--primary" onClick={resumeFeed}>Resume live feed</button>}</div></div></div>
     <div className="dashboard-grid dashboard-grid--monitor">
       <section className="panel body-map-panel"><div className="panel-heading"><div><p className="eyebrow">BODY OVERVIEW</p><h2>Measurement groups</h2></div><span className="status-pill status-pill--neutral">Navigation only</span></div><p className="muted body-map-intro">Select a highlighted area to filter its related readings. This map does not assess health.</p>
         <div className="body-map-wrap body-map-wrap--image">
@@ -318,10 +338,10 @@ export function Dashboard() {
           <svg className="body-map-hotspots" viewBox="0 0 270 340" role="group" aria-labelledby="body-map-title body-map-desc">
             <title id="body-map-title">Human scan measurement map</title>
             <desc id="body-map-desc">Select the head, chest, lung, or abdomen markers to filter related readings. A red pulsing marker means a rule alert or a large deviation from simulator reference is present in that region.</desc>
-            <RegionHotspot x={135} y={84} id="activity" selected={selectedRegion} label="Activity and wellbeing" hasAlert={regionHasAlert(['sleep_duration', 'mood', 'exercise_duration'])} onChoose={selectRegion} onKeyDown={regionKeyDown}/>
-            <RegionHotspot x={135} y={146} id="circulation" selected={selectedRegion} label="Heart and circulation" hasAlert={regionHasAlert(['heart_rate', 'systolic_pressure', 'diastolic_pressure', 'hrv_rmssd'])} onChoose={selectRegion} onKeyDown={regionKeyDown}/>
-            <RegionHotspot x={135} y={158} id="respiratory" selected={selectedRegion} label="Respiratory" hasAlert={regionHasAlert(['spo2'])} onChoose={selectRegion} onKeyDown={regionKeyDown}/>
-            <RegionHotspot x={135} y={194} id="general" selected={selectedRegion} label="General health" hasAlert={regionHasAlert(['body_temperature', 'glucose'])} onChoose={selectRegion} onKeyDown={regionKeyDown}/>
+            <RegionHotspot x={135} y={84} id="activity" selected={selectedRegion} label="Activity & wellbeing" labelX={135} labelY={12} hasAlert={regionHasAlert(['sleep_duration', 'mood', 'exercise_duration'])} onChoose={selectRegion} onKeyDown={regionKeyDown}/>
+            <RegionHotspot x={135} y={146} id="circulation" selected={selectedRegion} label="Heart & circulation" labelX={210} labelY={137} hasAlert={regionHasAlert(['heart_rate', 'systolic_pressure', 'diastolic_pressure', 'hrv_rmssd'])} onChoose={selectRegion} onKeyDown={regionKeyDown}/>
+            <RegionHotspot x={135} y={158} id="respiratory" selected={selectedRegion} label="Respiratory" labelX={215} labelY={168} hasAlert={regionHasAlert(['spo2'])} onChoose={selectRegion} onKeyDown={regionKeyDown}/>
+            <RegionHotspot x={135} y={194} id="general" selected={selectedRegion} label="General health" labelX={202} labelY={205} hasAlert={regionHasAlert(['body_temperature', 'glucose'])} onChoose={selectRegion} onKeyDown={regionKeyDown}/>
           </svg>
         </div>
         <div className="related-readings"><h3>{selectedRegionInfo.title}</h3>{related.map(field => { const reading = newest ? getReading(newest, field) : null; return <div className="related-row" key={field.key}><span>{field.label}</span><strong>{reading ? pretty(reading.value, reading.unit) : 'Unavailable'}</strong></div>; })}</div>
@@ -381,7 +401,12 @@ function AnalysisPanel({ analysis, newestRecordId, observation }: { analysis: { 
     {current?.state === 'unavailable' && <p className="notice notice--subtle" role="status">Measurements continue to update, but this sample could not be analyzed. {current.message}</p>}
     {!current && <p className="muted analysis-waiting">{newestRecordId ? 'Waiting for analysis of the latest sample…' : 'Analysis appears when the first sample arrives.'}</p>}
     {current?.state === 'loading' && <p className="muted analysis-waiting" role="status">Checking rule alerts and model availability for this sample…</p>}
-    {result && <div className="analysis-grid">
+    {!result && <div className="analysis-grid analysis-grid--reserved" aria-label="Loading analysis models" aria-busy="true">
+      <AnalysisSkeleton label="Rule assessment" />
+      <AnalysisSkeleton label="Anomaly detection" />
+      <AnalysisSkeleton label="Next-step forecast" forecast />
+    </div>}
+    {result && <div className="analysis-grid" aria-busy="false">
       <article className="analysis-card"><div className="analysis-card__heading"><div><span className="eyebrow">RULE ENGINE</span><h3>Current rule assessment</h3></div><span className={`severity-pill severity-pill--${result.rules.overall_level ?? 'unknown'}`}>{result.rules.overall_level ?? 'Unknown'}</span></div>
         <p className="analysis-model-meta">{result.rules.version} · demonstration thresholds</p>
         {result.rules.alerts.length ? <ul className="rule-alert-list">{result.rules.alerts.map((alert, index) => <li key={`${alert.code}-${index}`} className={`rule-alert rule-alert--${alert.severity}`}><strong>{alert.message}</strong><span>{alert.system.replaceAll('_', ' ')}</span>{alert.evidence.length > 0 && <small>{alert.evidence.map(item => `${item.field.replaceAll('_', ' ')}: ${item.value === null ? 'Unavailable' : `${item.value} ${item.unit}`} · ${item.quality}`).join(' · ')}</small>}</li>)}</ul> : <p className="analysis-empty">No rule alerts were returned for this sample. This is not a safety determination.</p>}
@@ -396,6 +421,15 @@ function AnalysisPanel({ analysis, newestRecordId, observation }: { analysis: { 
     </div>}
     {result && <p className="analysis-timestamp">Analyzed {time(result.analyzed_at)} · {scenarioOptions.find(option => option.id === result.scenario_id)?.label ?? result.scenario_id} · observation {result.record_id}</p>}
   </section>;
+}
+
+function AnalysisSkeleton({ label, forecast = false }: { label: string; forecast?: boolean }) {
+  return <article className={`analysis-card analysis-skeleton ${forecast ? 'analysis-card--forecast' : ''}`} aria-hidden="true">
+    <div className="analysis-card__heading"><div><span className="eyebrow">{label}</span><i className="skeleton-line skeleton-line--title" /></div><i className="skeleton-pill" /></div>
+    <i className="skeleton-line skeleton-line--wide" />
+    <i className="skeleton-line skeleton-line--medium" />
+    {forecast && <div className="analysis-skeleton__metrics">{Array.from({ length: 4 }, (_, index) => <i className="skeleton-metric" key={index} />)}</div>}
+  </article>;
 }
 
 function statusLabel(status: string) {
@@ -579,10 +613,12 @@ function Sparkline({ values, baseline, sampleId }: { values: number[]; baseline:
   </svg>;
 }
 
-function RegionHotspot({ x, y, id, selected, label, hasAlert, onChoose, onKeyDown }: { x: number; y: number; id: string; selected: string; label: string; hasAlert: boolean; onChoose: (id: string) => void; onKeyDown: (event: KeyboardEvent<SVGGElement>, id: string) => void }) {
+function RegionHotspot({ x, y, id, selected, label, labelX, labelY, hasAlert, onChoose, onKeyDown }: { x: number; y: number; id: string; selected: string; label: string; labelX: number; labelY: number; hasAlert: boolean; onChoose: (id: string) => void; onKeyDown: (event: KeyboardEvent<SVGGElement>, id: string) => void }) {
   const active = selected === id;
-  return <g className={`body-hotspot ${active ? 'is-selected' : ''} ${hasAlert ? 'has-alert' : ''}`} role="button" tabIndex={0} aria-label={hasAlert ? `${label} — rule alert or large simulator deviation` : label} aria-pressed={active} onClick={() => onChoose(id)} onKeyDown={event => onKeyDown(event, id)}>
+  const labelWidth = label.length * 5.55 + 18;
+  return <g className={`body-hotspot ${active ? 'is-selected' : ''} ${hasAlert ? 'has-alert' : ''}`} role="button" tabIndex={0} aria-label={hasAlert ? `${label} — alert or large simulator deviation active` : label} aria-pressed={active} onClick={() => onChoose(id)} onKeyDown={event => onKeyDown(event, id)}>
     <circle className="body-hotspot__hit" cx={x} cy={y} r="23"/><circle className="body-hotspot__ring" cx={x} cy={y} r="15"/><circle className="body-hotspot__core" cx={x} cy={y} r="5"/>
+    <g className="body-hotspot__label" aria-hidden="true"><rect x={labelX - labelWidth / 2} y={labelY - 9} width={labelWidth} height="18" rx="9"/><text x={labelX} y={labelY + 3} textAnchor="middle">{label}</text></g>
   </g>;
 }
 

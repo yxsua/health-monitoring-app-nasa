@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Astronaut Profiles and Authentication",
-    "description": "Local hackathon identity service. Register, log in, and use the returned bearer token to access your profile. Other local services can validate that token with GET /api/v1/auth/session. No cloud dependency.",
-    "version": "1.0.0"
+    "description": "Local hackathon identity service with optional user-owned profile and health details. Register, log in, and use the returned bearer token to access your profile. Other local services can validate that token with GET /api/v1/auth/session. No cloud dependency.",
+    "version": "1.1.0"
   },
   "paths": {
     "/api/v1/auth/register": {
@@ -35,7 +35,7 @@
             }
           },
           "422": {
-            "description": "Unprocessable Entity",
+            "description": "Unprocessable Content",
             "content": {
               "application/json": {
                 "schema": {
@@ -96,7 +96,7 @@
             }
           },
           "422": {
-            "description": "Unprocessable Entity",
+            "description": "Unprocessable Content",
             "content": {
               "application/json": {
                 "schema": {
@@ -147,7 +147,7 @@
             }
           },
           "422": {
-            "description": "Unprocessable Entity",
+            "description": "Unprocessable Content",
             "content": {
               "application/json": {
                 "schema": {
@@ -196,7 +196,7 @@
             "description": "Successful Response"
           },
           "422": {
-            "description": "Unprocessable Entity",
+            "description": "Unprocessable Content",
             "content": {
               "application/json": {
                 "schema": {
@@ -252,7 +252,7 @@
             }
           },
           "422": {
-            "description": "Unprocessable Entity",
+            "description": "Unprocessable Content",
             "content": {
               "application/json": {
                 "schema": {
@@ -316,7 +316,67 @@
             }
           },
           "422": {
-            "description": "Unprocessable Entity",
+            "description": "Unprocessable Content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/astronauts/crew": {
+      "get": {
+        "tags": [
+          "Profiles"
+        ],
+        "summary": "Crew Roster",
+        "operationId": "crew_roster_api_v1_astronauts_crew_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CrewRosterMember"
+                  },
+                  "type": "array",
+                  "title": "Response Crew Roster Api V1 Astronauts Crew Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
             "content": {
               "application/json": {
                 "schema": {
@@ -398,6 +458,36 @@
           "password"
         ],
         "title": "Credentials"
+      },
+      "CrewRosterMember": {
+        "properties": {
+          "astronaut_id": {
+            "type": "string",
+            "title": "Astronaut Id"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "mission": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mission"
+          }
+        },
+        "type": "object",
+        "required": [
+          "astronaut_id",
+          "display_name",
+          "mission"
+        ],
+        "title": "CrewRosterMember"
       },
       "ErrorDetail": {
         "properties": {
@@ -481,6 +571,128 @@
             ],
             "title": "Mission"
           },
+          "age_years": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Years"
+          },
+          "birthdate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birthdate"
+          },
+          "gender": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gender"
+          },
+          "pronouns": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pronouns"
+          },
+          "blood_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blood Type"
+          },
+          "allergies": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allergies"
+          },
+          "medical_conditions": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Medical Conditions"
+          },
+          "medications": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Medications"
+          },
+          "emergency_contact_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emergency Contact Name"
+          },
+          "emergency_contact_relationship": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emergency Contact Relationship"
+          },
+          "emergency_contact_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emergency Contact Phone"
+          },
           "created_at": {
             "type": "string",
             "title": "Created At"
@@ -496,6 +708,17 @@
           "username",
           "display_name",
           "mission",
+          "age_years",
+          "birthdate",
+          "gender",
+          "pronouns",
+          "blood_type",
+          "allergies",
+          "medical_conditions",
+          "medications",
+          "emergency_contact_name",
+          "emergency_contact_relationship",
+          "emergency_contact_phone",
           "created_at",
           "updated_at"
         ],
@@ -503,6 +726,139 @@
       },
       "ProfileUpdate": {
         "properties": {
+          "age_years": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 120.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Years"
+          },
+          "birthdate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birthdate"
+          },
+          "gender": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gender"
+          },
+          "pronouns": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pronouns"
+          },
+          "blood_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(A|B|AB|O)[+-]$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blood Type"
+          },
+          "allergies": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allergies"
+          },
+          "medical_conditions": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Medical Conditions"
+          },
+          "medications": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Medications"
+          },
+          "emergency_contact_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emergency Contact Name"
+          },
+          "emergency_contact_relationship": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emergency Contact Relationship"
+          },
+          "emergency_contact_phone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emergency Contact Phone"
+          },
           "display_name": {
             "anyOf": [
               {
@@ -535,6 +891,139 @@
       },
       "Registration": {
         "properties": {
+          "age_years": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 120.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Years"
+          },
+          "birthdate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birthdate"
+          },
+          "gender": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gender"
+          },
+          "pronouns": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pronouns"
+          },
+          "blood_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(A|B|AB|O)[+-]$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blood Type"
+          },
+          "allergies": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allergies"
+          },
+          "medical_conditions": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Medical Conditions"
+          },
+          "medications": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Medications"
+          },
+          "emergency_contact_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emergency Contact Name"
+          },
+          "emergency_contact_relationship": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emergency Contact Relationship"
+          },
+          "emergency_contact_phone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emergency Contact Phone"
+          },
           "username": {
             "type": "string",
             "maxLength": 40,

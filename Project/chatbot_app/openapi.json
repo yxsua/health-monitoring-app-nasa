@@ -1,9 +1,9 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Astronaut Assessment Chatbot",
-    "description": "Local structured screening demo with static explanations. No model, simulator, or external network dependency. Bearer tokens are verified with astronaut_app on every protected request.",
-    "version": "1.0.0"
+    "title": "Astronaut Wellbeing Service",
+    "description": "Local structured check-ins and screening, with an optional stateless local-model conversation. Bearer tokens are verified with astronaut_app on every protected request.",
+    "version": "1.3.0"
   },
   "paths": {
     "/api/v1/chatbot/assessments": {
@@ -21,6 +21,364 @@
                   },
                   "type": "array",
                   "title": "Response Assessments Api V1 Chatbot Assessments Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/chatbot/check-ins/today": {
+      "get": {
+        "summary": "Today Check In",
+        "operationId": "today_check_in_api_v1_chatbot_check_ins_today_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodayCheckIn"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "put": {
+        "summary": "Save Today Check In",
+        "operationId": "save_today_check_in_api_v1_chatbot_check_ins_today_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckInWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckIn"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/chatbot/check-ins": {
+      "get": {
+        "summary": "Check In History",
+        "operationId": "check_in_history_api_v1_chatbot_check_ins_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 30,
+              "minimum": 1,
+              "default": 7,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CheckIn"
+                  },
+                  "title": "Response Check In History Api V1 Chatbot Check Ins Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/chatbot/check-ins/trend": {
+      "get": {
+        "summary": "Check In Trend",
+        "operationId": "check_in_trend_api_v1_chatbot_check_ins_trend_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckInTrend"
                 }
               }
             }
@@ -1286,6 +1644,182 @@
         ]
       }
     },
+    "/api/v1/chatbot/assistant/status": {
+      "get": {
+        "summary": "Assistant Status",
+        "operationId": "assistant_status_api_v1_chatbot_assistant_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/chatbot/assistant/conversation": {
+      "post": {
+        "summary": "Assistant Conversation",
+        "operationId": "assistant_conversation_api_v1_chatbot_assistant_conversation_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConversationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationReply"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health",
@@ -1301,6 +1835,80 @@
           }
         }
       }
+    },
+    "/api/v1/chatbot/recommendations/evaluate": {
+      "post": {
+        "summary": "Evaluate recommendations",
+        "description": "Combines the authenticated user's structured assessment/check-in state with optional simulated dashboard results and consented topic tags. Conversation messages are not accepted or stored.",
+        "operationId": "recommendations_api_v1_chatbot_recommendations_evaluate_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecommendationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Source-aware recommendations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Storage unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1309,13 +1917,13 @@
         "properties": {
           "expected_revision": {
             "type": "integer",
-            "minimum": 0.0,
+            "minimum": 0,
             "title": "Expected Revision"
           },
           "value": {
             "type": "integer",
-            "maximum": 3.0,
-            "minimum": 0.0,
+            "maximum": 3,
+            "minimum": 0,
             "title": "Value"
           }
         },
@@ -1356,6 +1964,38 @@
         ],
         "title": "AssistantReply"
       },
+      "AssistantStatus": {
+        "properties": {
+          "conversation_enabled": {
+            "type": "boolean",
+            "title": "Conversation Enabled"
+          },
+          "model_configured": {
+            "type": "boolean",
+            "title": "Model Configured"
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "en",
+              "es"
+            ],
+            "title": "Language"
+          },
+          "response_timeout_seconds": {
+            "type": "integer",
+            "title": "Response Timeout Seconds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "conversation_enabled",
+          "model_configured",
+          "language",
+          "response_timeout_seconds"
+        ],
+        "title": "AssistantStatus"
+      },
       "Band": {
         "properties": {
           "minimum": {
@@ -1373,6 +2013,242 @@
           "code"
         ],
         "title": "Band"
+      },
+      "CheckIn": {
+        "properties": {
+          "check_in_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Check In Date"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "mood_score": {
+            "type": "integer",
+            "title": "Mood Score"
+          },
+          "sleep_duration_hours": {
+            "type": "number",
+            "title": "Sleep Duration Hours"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "check_in_date",
+          "revision",
+          "mood_score",
+          "sleep_duration_hours",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "CheckIn"
+      },
+      "CheckInTrend": {
+        "properties": {
+          "policy_version": {
+            "type": "string",
+            "title": "Policy Version"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "insufficient_data",
+              "no_pattern",
+              "check_in_suggested"
+            ],
+            "title": "Status"
+          },
+          "evaluated_at": {
+            "type": "string",
+            "title": "Evaluated At"
+          },
+          "baseline_days": {
+            "type": "integer",
+            "title": "Baseline Days"
+          },
+          "recent_days": {
+            "type": "integer",
+            "title": "Recent Days"
+          },
+          "baseline_mood_mean": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Mood Mean"
+          },
+          "recent_mood_mean": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recent Mood Mean"
+          },
+          "baseline_sleep_mean_hours": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Sleep Mean Hours"
+          },
+          "recent_sleep_mean_hours": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recent Sleep Mean Hours"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "policy_version",
+          "status",
+          "evaluated_at",
+          "baseline_days",
+          "recent_days",
+          "baseline_mood_mean",
+          "recent_mood_mean",
+          "baseline_sleep_mean_hours",
+          "recent_sleep_mean_hours",
+          "message"
+        ],
+        "title": "CheckInTrend"
+      },
+      "CheckInWrite": {
+        "properties": {
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0,
+            "title": "Expected Revision"
+          },
+          "mood_score": {
+            "type": "integer",
+            "maximum": 5,
+            "minimum": 1,
+            "title": "Mood Score"
+          },
+          "sleep_duration_hours": {
+            "type": "number",
+            "maximum": 24,
+            "minimum": 0,
+            "title": "Sleep Duration Hours"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expected_revision",
+          "mood_score",
+          "sleep_duration_hours"
+        ],
+        "title": "CheckInWrite"
+      },
+      "ConversationReply": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "const": "local_model",
+            "title": "Mode"
+          },
+          "model_available": {
+            "type": "boolean",
+            "const": true,
+            "title": "Model Available"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mode",
+          "model_available",
+          "text"
+        ],
+        "title": "ConversationReply"
+      },
+      "ConversationRequest": {
+        "properties": {
+          "consent": {
+            "type": "boolean",
+            "const": true,
+            "title": "Consent"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/ConversationTurn"
+            },
+            "type": "array",
+            "maxItems": 12,
+            "minItems": 1,
+            "title": "Messages"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "consent",
+          "messages"
+        ],
+        "title": "ConversationRequest"
+      },
+      "ConversationTurn": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "title": "Role"
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 1200,
+            "minLength": 1,
+            "title": "Content"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "role",
+          "content"
+        ],
+        "title": "ConversationTurn"
       },
       "Definition": {
         "properties": {
@@ -1672,7 +2548,7 @@
         "properties": {
           "expected_revision": {
             "type": "integer",
-            "minimum": 0.0,
+            "minimum": 0,
             "title": "Expected Revision"
           }
         },
@@ -1856,6 +2732,418 @@
           "assessment_version"
         ],
         "title": "Start"
+      },
+      "TodayCheckIn": {
+        "properties": {
+          "check_in_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Check In Date"
+          },
+          "check_in": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "check_in_date",
+          "check_in"
+        ],
+        "title": "TodayCheckIn"
+      },
+      "RecommendationEvidence": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unit": {
+            "type": "string"
+          },
+          "quality": {
+            "type": "string",
+            "enum": [
+              "valid",
+              "missing",
+              "invalid"
+            ]
+          }
+        },
+        "required": [
+          "field",
+          "value",
+          "unit",
+          "quality"
+        ],
+        "additionalProperties": false
+      },
+      "DashboardAlert": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "caution",
+              "warning",
+              "critical"
+            ]
+          },
+          "system": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecommendationEvidence"
+            },
+            "maxItems": 20
+          }
+        },
+        "required": [
+          "code",
+          "severity",
+          "system",
+          "message",
+          "evidence"
+        ],
+        "additionalProperties": false
+      },
+      "DashboardRules": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "available",
+              "warming_up",
+              "insufficient_data",
+              "unavailable"
+            ]
+          },
+          "alerts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardAlert"
+            },
+            "maxItems": 40
+          }
+        },
+        "required": [
+          "status",
+          "alerts"
+        ],
+        "additionalProperties": false
+      },
+      "DashboardModel": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "available",
+              "warming_up",
+              "insufficient_data",
+              "unavailable"
+            ]
+          },
+          "is_anomaly": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "DashboardForecast": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "available",
+              "warming_up",
+              "insufficient_data",
+              "unavailable"
+            ]
+          },
+          "is_anomaly": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "target_time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "DashboardContext": {
+        "type": "object",
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "scenario_id": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "solar_event",
+              "high_co2",
+              "prolonged_isolation"
+            ]
+          },
+          "source_subject_id": {
+            "type": "string",
+            "enum": [
+              "A01",
+              "AST-001"
+            ]
+          },
+          "record_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "observed_at": {
+            "type": "string"
+          },
+          "rules": {
+            "$ref": "#/components/schemas/DashboardRules"
+          },
+          "anomaly": {
+            "$ref": "#/components/schemas/DashboardModel"
+          },
+          "forecast": {
+            "$ref": "#/components/schemas/DashboardForecast"
+          }
+        },
+        "required": [
+          "run_id",
+          "scenario_id",
+          "source_subject_id",
+          "record_id",
+          "observed_at",
+          "rules",
+          "anomaly",
+          "forecast"
+        ],
+        "additionalProperties": false
+      },
+      "ConversationContext": {
+        "type": "object",
+        "properties": {
+          "consent": {
+            "type": "boolean",
+            "const": true
+          },
+          "topics": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 5,
+            "items": {
+              "type": "string",
+              "enum": [
+                "sleep_rest",
+                "stress_support",
+                "exercise_recovery",
+                "cabin_conditions",
+                "human_support"
+              ]
+            }
+          }
+        },
+        "required": [
+          "consent",
+          "topics"
+        ],
+        "additionalProperties": false
+      },
+      "RecommendationRequest": {
+        "type": "object",
+        "properties": {
+          "dashboard": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashboardContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "conversation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConversationContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "Recommendation": {
+        "type": "object",
+        "properties": {
+          "recommendation_id": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "routine",
+              "caution",
+              "warning",
+              "critical"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "rationale": {
+            "type": "string"
+          },
+          "source_scope": {
+            "type": "string",
+            "enum": [
+              "astronaut_profile",
+              "simulated_fixture",
+              "user_confirmed_context",
+              "app_usage"
+            ]
+          },
+          "source_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecommendationEvidence"
+            }
+          }
+        },
+        "required": [
+          "recommendation_id",
+          "priority",
+          "title",
+          "action",
+          "rationale",
+          "source_scope",
+          "source_refs",
+          "observed_at",
+          "evidence"
+        ],
+        "additionalProperties": false
+      },
+      "RecommendationResponse": {
+        "type": "object",
+        "properties": {
+          "policy_version": {
+            "type": "string"
+          },
+          "evaluated_at": {
+            "type": "string"
+          },
+          "recommendations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Recommendation"
+            }
+          }
+        },
+        "required": [
+          "policy_version",
+          "evaluated_at",
+          "recommendations"
+        ],
+        "additionalProperties": false
       }
     },
     "securitySchemes": {

@@ -9,7 +9,7 @@ class Store:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as db:
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version not in (0, 1):
+            if version not in (0, 1, 2):
                 raise RuntimeError("Unsupported chatbot database version")
             db.executescript("""
                 CREATE TABLE IF NOT EXISTS sessions (
@@ -33,12 +33,21 @@ class Store:
                 CREATE TABLE IF NOT EXISTS summaries (
                     astronaut_id TEXT PRIMARY KEY, revision INTEGER NOT NULL, updated_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS check_ins (
+                    astronaut_id TEXT NOT NULL, check_in_date TEXT NOT NULL,
+                    mood_score INTEGER NOT NULL CHECK(mood_score BETWEEN 1 AND 5),
+                    sleep_duration_hours REAL NOT NULL CHECK(sleep_duration_hours BETWEEN 0 AND 24),
+                    revision INTEGER NOT NULL CHECK(revision > 0),
+                    created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+                    PRIMARY KEY(astronaut_id, check_in_date)
+                );
+                CREATE INDEX IF NOT EXISTS check_in_owner_date ON check_ins(astronaut_id, check_in_date DESC);
                 CREATE TABLE IF NOT EXISTS idempotency (
                     astronaut_id TEXT NOT NULL, operation TEXT NOT NULL, key TEXT NOT NULL,
                     fingerprint TEXT NOT NULL, response TEXT NOT NULL,
                     PRIMARY KEY(astronaut_id, operation, key)
                 );
-                PRAGMA user_version=1;
+                PRAGMA user_version=2;
             """)
 
     @contextmanager

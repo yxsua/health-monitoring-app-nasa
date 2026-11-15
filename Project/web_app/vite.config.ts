@@ -7,6 +7,7 @@ export default defineConfig({
     host: '127.0.0.1',
     proxy: {
       '/api/v1/chatbot': { target: 'http://127.0.0.1:8002', changeOrigin: true },
+      '/api/v1/mission-control': { target: 'http://127.0.0.1:8003', changeOrigin: true },
       '/api/v1/simulation': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/api/v1': { target: 'http://127.0.0.1:8001', changeOrigin: true },
     },

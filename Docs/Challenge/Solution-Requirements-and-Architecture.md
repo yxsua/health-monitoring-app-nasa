@@ -190,6 +190,8 @@ All scenarios must run offline. Repeat the relevant checks after restarting the 
 
 **Requirement:** Periodically communicate selected astronaut summaries when connectivity permits. The onboard system must function indefinitely without this feature.
 
+The proposed first implementation is an onboard Mission Control outbox with deterministic simulated contact windows, queued structured updates, and a simulated receiver receipt. It is not a live Earth link or ground-control console; see the [Mission Control implementation plan](Mission-Control-Dashboard-Implementation-Plan.md).
+
 **Acceptance criteria if implemented:**
 
 - Disabling or removing the export worker does not interrupt onboard monitoring, inference, alerts, or history access.

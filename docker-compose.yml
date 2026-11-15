@@ -66,6 +66,10 @@ services:
     environment:
       CHATBOT_DB_PATH: /data/chatbot.db
       ASTRONAUT_SERVICE_URL: http://astronaut:8001
+      CHATBOT_LOCAL_MODEL_URL: ${CHATBOT_LOCAL_MODEL_URL:-}
+      CHATBOT_LOCAL_MODEL_NAME: ${CHATBOT_LOCAL_MODEL_NAME:-}
+      CHATBOT_CONVERSATION_ENABLED: ${CHATBOT_CONVERSATION_ENABLED:-false}
+      CHATBOT_CONVERSATION_LANGUAGE: ${CHATBOT_CONVERSATION_LANGUAGE:-en}
     volumes:
       - chatbot-data:/data
     expose:
@@ -87,6 +91,98 @@ services:
       timeout: 3s
       retries: 5
       start_period: 10s
+
+  mission-control:
+    build:
+      context: .
+      dockerfile: Project/mission_control_app/Dockerfile
+    environment:
+      MISSION_CONTROL_DB_PATH: /data/mission_control.db
+      MISSION_CONTROL_RETENTION_DAYS: ${MISSION_CONTROL_RETENTION_DAYS:-30}
+      MISSION_CONTROL_CYCLE_SECONDS: ${MISSION_CONTROL_CYCLE_SECONDS:-60}
+      MISSION_CONTROL_WINDOW_SECONDS: ${MISSION_CONTROL_WINDOW_SECONDS:-20}
+      MISSION_CONTROL_WINDOW_CAPACITY_BYTES: ${MISSION_CONTROL_WINDOW_CAPACITY_BYTES:-4096}
+      MISSION_CONTROL_TRANSFER_RATE_BYTES_PER_SECOND: ${MISSION_CONTROL_TRANSFER_RATE_BYTES_PER_SECOND:-512}
+      MISSION_CONTROL_SENDER_POLL_SECONDS: ${MISSION_CONTROL_SENDER_POLL_SECONDS:-0.5}
+      ASTRONAUT_SERVICE_URL: http://astronaut:8001
+      MISSION_CONTROL_CORS_ORIGINS: ${MISSION_CONTROL_CORS_ORIGINS:-http://localhost:8081,http://127.0.0.1:8081}
+    volumes:
+      - mission-control-data:/data
+    ports:
+      - "127.0.0.1:${MISSION_CONTROL_API_PORT:-8003}:8003"
+    depends_on:
+      astronaut:
+        condition: service_healthy
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8003/health', timeout=2)"]
+      interval: 20s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  mission-control-dashboard:
+    build:
+      context: .
+      dockerfile: Project/mission_control_ui/Dockerfile
+    ports:
+      - "127.0.0.1:${MISSION_CONTROL_DASHBOARD_PORT:-8081}:8080"
+    user: "101:101"
+    depends_on:
+      mission-control:
+        condition: service_healthy
+      simulator:
+        condition: service_started
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m,mode=1777
+      - /var/cache/nginx:rw,noexec,nosuid,size=16m,mode=1777
+      - /var/run:rw,noexec,nosuid,size=4m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/ || exit 1"]
+      interval: 20s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  ollama:
+    image: ${OLLAMA_IMAGE:-ollama/ollama:0.40.16}
+    profiles: ["local-model"]
+    volumes:
+      - ollama-models:/root/.ollama
+    expose:
+      - "11434"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "ps"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  ollama-model-init:
+    image: ${OLLAMA_IMAGE:-ollama/ollama:0.40.16}
+    profiles: ["local-model"]
+    entrypoint: ["ollama"]
+    command: ["pull", "${CHATBOT_LOCAL_MODEL_NAME:-llama3.2:3b}"]
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: "no"
 
   web:
     build:
@@ -119,4 +215,6 @@ services:
 volumes:
   astronaut-data:
   chatbot-data:
+  mission-control-data:
   simulator-data:
+  ollama-models:
