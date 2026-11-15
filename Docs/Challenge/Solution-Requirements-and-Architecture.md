@@ -202,7 +202,8 @@ All scenarios must run offline. Repeat the relevant checks after restarting the 
 ## Deferred Scope and Open Decisions
 
 - **Deferred:** 3D anatomy, a comprehensive ground medical dashboard, live sensor integration, autonomous in-mission retraining, and validated clinical-event prediction.
-- **To select:** Local model architectures, training datasets, storage engine, deployment packaging, and authentication mechanism.
+- **Selected for the current prototype:** Isolation Forest for single-observation anomaly scoring; LSTM for one-step forecasts from 24 three-second samples; a shared synthetic generator for training and live scenarios; per-astronaut SQLite forecast history. These outputs are demonstration-only and require recorded evaluation before broader use.
+- **Still to select:** Target hardware, persistent storage beyond the prototype's SQLite history, and authentication for deployed simulation/analysis endpoints.
 - **To define before performance acceptance:** Target hardware, model memory/storage budgets, input rates, and acceptable assessment and conversation latency.
 - **To review:** Clinical grounding of thresholds and guidance, baseline initialization, data retention, and permissions for sharing well-being summaries.
 

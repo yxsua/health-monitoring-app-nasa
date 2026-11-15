@@ -25,7 +25,7 @@ function Shell() {
   }
   return <div className="app-shell">
     <header className="topbar">
-      <Link to="/dashboard" className="brand" aria-label="Mission Health Console overview"><span className="brand-mark" aria-hidden="true">M</span><span>Mission Health Console</span></Link>
+      <Link to="/dashboard" className="brand" aria-label="AstraHealth overview"><img className="brand-mark" src="/logo-mark.png" alt="" aria-hidden="true" /><span>AstraHealth</span></Link>
       <nav className="main-nav" aria-label="Main navigation">
         <NavLink to="/dashboard">Overview</NavLink><NavLink to="/wellbeing">Wellbeing</NavLink><NavLink to="/wellbeing/history">History</NavLink>
       </nav>

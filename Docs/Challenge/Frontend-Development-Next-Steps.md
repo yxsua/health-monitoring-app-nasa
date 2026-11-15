@@ -2,11 +2,11 @@ Kind: software — local astronaut health application.
 
 # Frontend Development: Next Steps
 
-Status: proposed hackathon roadmap. Target: `Project/web_app`. This document defines the next implementation work; it does not create the frontend.
+Status: implementation roadmap updated for the current application. Target: `Project/web_app`.
 
 ## 1. Current State and Goal
 
-The frontend directory is empty. Three local services are available:
+The React + TypeScript application and three local services are implemented:
 
 | Service | Default port | Available functionality |
 | --- | --- | --- |
@@ -16,7 +16,7 @@ The frontend directory is empty. Three local services are available:
 
 Build a React + TypeScript application that lets an astronaut sign in, inspect simulated health and cabin measurements, complete a structured assessment, and review results. All essential functionality must run locally after deployment.
 
-The main risk engine is not implemented. The frontend must not invent medical alerts, diagnoses, risk probabilities, or severity classifications to fill that gap. It can display measurement quality, trends, and the chatbot's existing follow-up flags.
+The simulator API provides deterministic demonstration rules and optional Isolation Forest and LSTM inference. The frontend renders each component's returned state independently; it must not invent model scores, diagnoses, or severity. Outputs remain synthetic demonstrations and are not clinical assessments.
 
 ## 2. MVP Scope and Priority
 
@@ -24,7 +24,7 @@ The main risk engine is not implemented. The frontend must not invent medical al
 
 **Second flow:** generate a simulated sample → inspect measurements → select a body region → inspect relevant readings and recent samples.
 
-Include account/profile controls, assessment resume, result history, an environmental panel, and explicit service availability. Defer 3D anatomy, unrestricted AI conversation, model training, professional portals, Earth dashboards, and gamification.
+Include account/profile controls, assessment resume, result history, an environmental panel, explicit service availability, and selectable simulator scenarios. Continue model training and integration using the shared live/training distributions at a three-second cadence. Defer 3D anatomy, unrestricted AI conversation, professional portals, Earth dashboards, and gamification.
 
 Consent, retention, event-resolution authority, disclosure policies, hardware qualification, and model memory/latency budgets remain outside the hackathon backlog, as agreed. Basic login, ownership enforcement, accurate status displays, and deterministic backend scoring remain required.
 

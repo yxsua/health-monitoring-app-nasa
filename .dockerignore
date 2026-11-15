@@ -11,6 +11,10 @@
 **/*.db
 **/*.db-shm
 **/*.db-wal
+Project/simulated_inputs_app/training_data/
+Project/simulated_inputs_app/model_artifacts/*.pkl
+Project/simulated_inputs_app/model_artifacts/*.keras
+Project/simulated_inputs_app/model_artifacts/model-manifest.json
 Docs/Challenge/*
 !Docs/Challenge/simulated-astronaut-inputs.schema.json
 !Docs/Challenge/simulated-astronaut-inputs.openapi.json

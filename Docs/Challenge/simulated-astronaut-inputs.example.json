@@ -5,6 +5,7 @@
   "seed": 42,
   "generator_version": "example-1",
   "simulation_time": "2026-11-14T08:30:00Z",
+  "scenario_transition": {"active": false, "step": 8, "total_steps": 8},
   "items": [
     {
       "record_id": "sample-0001",

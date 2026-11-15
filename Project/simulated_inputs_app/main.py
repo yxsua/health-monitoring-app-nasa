@@ -4,18 +4,20 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 
-from generador_datos import generar_datos, VARIABLES
-from isolation_forest import entrenar as entrenar_if, detectar
-from lstm_model import entrenar as entrenar_lstm, predecir
+from generador_datos import VARIABLES
+from isolation_forest import detectar
+from lstm_model import predecir
 from simulador_tiempo_real import iniciar
 from alert_engine import generar_alertas_actuales, generar_alertas_preventivas
 
 def preparar_modelos():
-    print("Generando datos y entrenando modelos...")
-    generar_datos(10000)
-    entrenar_if()
-    entrenar_lstm()
-    print("Modelos listos.")
+    print("Generating aligned three-second data and training models...")
+    try:
+        from .train_models import train
+    except ImportError:
+        from train_models import train
+    train(10000)
+    print("Models and manifest ready.")
 
 def monitorear():
     historial = []

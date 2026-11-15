@@ -10,6 +10,7 @@
     "seed",
     "generator_version",
     "simulation_time",
+    "scenario_transition",
     "items",
     "next_cursor"
   ],
@@ -41,6 +42,16 @@
       "type": "string",
       "format": "date-time",
       "pattern": "Z$"
+    },
+    "scenario_transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["active", "step", "total_steps"],
+      "properties": {
+        "active": {"type": "boolean"},
+        "step": {"type": "integer", "minimum": 0, "maximum": 8},
+        "total_steps": {"const": 8}
+      }
     },
     "items": {
       "type": "array",

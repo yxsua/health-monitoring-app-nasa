@@ -3,7 +3,7 @@
   "info": {
     "title": "Simulated Astronaut Inputs API",
     "version": "1.1.0",
-    "description": "Local simulation API. Each successful GET recalculates one observation. Process-local demo run demo-run supports A01 and AST-001. No pagination, history retrieval or authentication is implemented in the initial app. Bind to loopback until local authorization is implemented."
+    "description": "Local simulation API. Each successful GET recalculates one observation; PUT /scenario selects one of four controlled scenarios for the demo run. POST analysis evaluates that exact observation and returns rule results plus explicit optional-model status. Process-local demo run demo-run supports A01 and AST-001. No pagination, history retrieval or authentication is implemented in the initial app. Bind to loopback until local authorization is implemented."
   },
   "servers": [
     {
@@ -25,7 +25,7 @@
           "Simulation"
         ],
         "summary": "Recalculate and retrieve simulated astronaut inputs",
-        "description": "Every successful call recalculates exactly one sample, advances the astronaut sequence and uses a new UTC observation time. GET is intentionally state-changing for this simulator: clients must not prefetch or automatically retry unless another sample is desired. All query parameters, including from, to, limit and cursor, are rejected with 422. Responses contain one item and next_cursor=null. State and random sequence reset on process restart; run a single worker. Daily aggregates are freshly simulated estimates for the previous completed UTC day on every call, not immutable historical measurements. All 20 fields and original unit/quality/domain constraints are preserved. Three unsupported indicators are explicitly missing. No model training or Earth connection is required. Values may fall outside reference health bands: normal denotes the generator mode, not a guarantee of healthy readings. The initial app has no authorization: bind to loopback only. Cross-field time ordering and complete UTC-day periods require application checks.",
+        "description": "Every successful call recalculates exactly one sample, advances the astronaut sequence and uses a new UTC observation time. PUT /scenario changes the run-wide scenario gradually across eight generated samples; scenario_transition reports progress. GET is intentionally state-changing for this simulator: clients must not prefetch or automatically retry unless another sample is desired. All query parameters, including from, to, limit and cursor, are rejected with 422. Responses contain one item and next_cursor=null. State and random sequence reset on process restart; run a single worker. Daily aggregates are freshly simulated estimates for the previous completed UTC day on every call, not immutable historical measurements. All 20 fields and original unit/quality/domain constraints are preserved. Three unsupported indicators are explicitly missing. No model training or Earth connection is required. Values may fall outside reference health bands: normal denotes the generator mode, not a guarantee of healthy readings. The initial app has no authorization: bind to loopback only. Cross-field time ordering and complete UTC-day periods require application checks.",
         "parameters": [
           {
             "name": "run_id",
@@ -77,6 +77,7 @@
                       "seed": 42,
                       "generator_version": "example-1",
                       "simulation_time": "2026-11-14T08:30:00Z",
+                      "scenario_transition": {"active": false, "step": 8, "total_steps": 8},
                       "items": [
                         {
                           "record_id": "sample-0001",
@@ -376,6 +377,7 @@
           "seed",
           "generator_version",
           "simulation_time",
+          "scenario_transition",
           "items",
           "next_cursor"
         ],
@@ -407,6 +409,16 @@
             "type": "string",
             "format": "date-time",
             "pattern": "Z$"
+          },
+          "scenario_transition": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["active", "step", "total_steps"],
+            "properties": {
+              "active": {"type": "boolean"},
+              "step": {"type": "integer", "minimum": 0, "maximum": 8},
+              "total_steps": {"const": 8}
+            }
           },
           "items": {
             "type": "array",

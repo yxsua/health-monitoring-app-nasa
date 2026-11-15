@@ -1,4 +1,6 @@
-# Mission Health Console frontend
+# AstraHealth frontend
+
+The dashboard polls simulated measurements every three seconds while visible. Metric sparklines use the latest eight samples and take their risk color from backend rule evidence. Rule, anomaly, and wellbeing follow-up alerts appear at the upper right with a three-minute cooldown per alert type.
 
 Local React + TypeScript console for astronaut profiles, simulated measurements and the structured wellbeing assessment service.
 
@@ -35,7 +37,9 @@ The sync task preserves the frontend's 401 session-expiration event handling. Do
 
 ## Data boundaries
 
-- Simulator subjects `A01` and `AST-001` are fixture identities and are selected separately from the signed-in profile. Each explicit sample request generates a new observation.
+- Simulator subjects `A01` and `AST-001` are fixture identities and are selected separately from the signed-in profile. The dashboard requests a new observation every three seconds while active and the browser tab is visible. Polling can be paused or resumed; requests do not overlap, and the recent trend keeps up to eight returned samples in browser memory.
+- The dashboard can select the simulator run's active scenario (`normal`, `solar_event`, `high_co2`, or `prolonged_isolation`). The selected scenario is returned with each sample and analysis result.
+- Each observation is submitted to the simulator analysis endpoint by `record_id`. The response keeps deterministic rule alerts, Isolation Forest status, and LSTM forecast status distinct. The simulator and analysis service run as one container; the SQLite analysis history persists in the `simulator-data` volume. Model artifacts are optional and are not included in the repository; enable the optional ML runtime and add reviewed artifacts under `Project/simulated_inputs_app/model_artifacts` to load them.
 - Null or missing simulator values display as unavailable, not zero.
 - The dashboard only renders the assessment service's availability, results and follow-up status. It does not infer diagnoses, severity or risk.
 - Static assistant actions are buttons backed by typed service intents. There is no free-text chatbot.

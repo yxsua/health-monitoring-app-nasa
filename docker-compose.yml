@@ -28,6 +28,20 @@ services:
     build:
       context: .
       dockerfile: Project/simulated_inputs_app/Dockerfile
+      args:
+        INSTALL_ML_RUNTIME: ${INSTALL_ML_RUNTIME:-true}
+    environment:
+      SIMULATION_HISTORY_DB: /data/analysis.sqlite3
+      LSTM_SAMPLE_PERIOD_SECONDS: 3
+      LSTM_MAX_GAP_SECONDS: 15
+      MODEL_ARTIFACTS_DIR: /models
+      MODEL_MANIFEST_PATH: /models/model-manifest.json
+      ISOLATION_FOREST_PATH: /models/isolation_forest.pkl
+      LSTM_MODEL_PATH: /models/lstm_model.keras
+      LSTM_SCALER_PATH: /models/scaler.pkl
+    volumes:
+      - simulator-data:/data
+      - ./Project/simulated_inputs_app/model_artifacts:/models:ro
     expose:
       - "8000"
     restart: unless-stopped
@@ -105,3 +119,4 @@ services:
 volumes:
   astronaut-data:
   chatbot-data:
+  simulator-data:

@@ -25,6 +25,8 @@ Each successful GET recalculates exactly one observation using the existing app 
 
 Only the nonempty path parameters `run_id` and `astronaut_id` are accepted. The initial app configures `demo-run` with astronauts `A01` and `AST-001`. Unknown runs or astronauts return 404. All query parameters (including the previous `from`, `to`, `limit`, and `cursor`) return 422. There is no pagination or history retrieval. Every success returns one item and `next_cursor: null`.
 
+Use `PUT /api/v1/simulation/runs/{run_id}/scenario` to select a configured scenario. The simulator interpolates each signal's distribution over eight subsequent inputs, which takes about 24 seconds at a three-second polling cadence. Changing the target during a ramp continues from its current interpolated distribution.
+
 State is process-local and resets on restart. Run one worker. The seed and request sequence reproduce values; timestamps reflect actual request time. Independent astronaut streams prevent one astronaut's requests changing another's values. This prototype does not yet satisfy the broader requirement for persisted history across restarts.
 
 Return `Content-Type: application/json` and `Cache-Control: no-store`. Authentication is not implemented in the initial app; bind to loopback until local authorization is added. Earth connectivity and trained ML models are not needed for input generation.
@@ -39,6 +41,7 @@ Return `Content-Type: application/json` and `Cache-Control: no-store`. Authentic
 | `seed` | integer | Configured nonnegative random seed. |
 | `generator_version` | string | Simulator implementation/configuration version. |
 | `simulation_time` | UTC timestamp | UTC time of the newly generated sample. |
+| `scenario_transition` | object | Scenario ramp status. A new scenario is reached over eight generated inputs; `step` reports progress from 1 to 8. |
 | `items` | array | Exactly one newly generated observation for the requested astronaut. |
 | `next_cursor` | null | Always null; pagination is not supported. |
 

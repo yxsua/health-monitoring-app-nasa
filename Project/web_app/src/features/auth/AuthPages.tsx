@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
+import { EarthGlobe } from './EarthGlobe';
 
 export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const isRegister = mode === 'register';
@@ -20,15 +21,14 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   }
   return <main className="auth-layout">
     <aside className="auth-aside">
-      <div className="brand brand--large"><span className="brand-mark" aria-hidden="true">M</span><span>Mission Health Console</span></div>
-      <div className="auth-aside__copy"><p className="eyebrow">LOCAL ASTRONAUT HEALTH</p><h1>Monitoring and wellbeing assessments</h1><div className="auth-facts"><p>Simulated measurements are labeled as fixture data.</p><p>Assessment questions and scores come from the local service.</p><p>The main risk engine and real sensor feeds are not included.</p></div></div>
-      <div className="auth-aside__foot"><span className="status-dot" /> Local services only <span className="divider">/</span> No external sign-in</div>
+      <Link to="/login" className="brand brand--large"><img className="brand-mark" src="/logo-mark.png" alt="" aria-hidden="true" /><span>AstraHealth</span></Link>
+      <EarthGlobe />
+      <p className="earth-credit">NASA Earth Observatory · Blue Marble</p>
     </aside>
     <section className="auth-panel" aria-labelledby="auth-title">
       <div className="auth-card">
-        <p className="eyebrow">{isRegister ? 'NEW ACCOUNT' : 'ASTRONAUT ACCESS'}</p>
-        <h2 id="auth-title">{isRegister ? 'Create your profile' : 'Sign in to your account'}</h2>
-        <p className="muted">{isRegister ? 'Your profile is stored by the local identity service.' : 'Use the account registered with the local identity service.'}</p>
+        <p className="eyebrow">{isRegister ? 'ASTRAHEALTH ACCESS' : 'ASTRAHEALTH ACCESS'}</p>
+        <h2 id="auth-title">{isRegister ? 'Create profile' : 'Sign in'}</h2>
         {!isRegister && location.state?.logoutMessage && <p className="notice notice--error" role="status">{location.state.logoutMessage}</p>}
         <form onSubmit={submit} className="form-stack">
           {isRegister && <label>Display name<input autoComplete="name" required maxLength={100} value={values.display_name} onChange={e => setValues({ ...values, display_name: e.target.value })} /></label>}
@@ -39,7 +39,6 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
           <button className="button button--primary button--full" disabled={busy}>{busy ? 'Connecting…' : isRegister ? 'Create profile' : 'Sign in'}</button>
         </form>
         <p className="auth-switch">{isRegister ? 'Already have a profile?' : 'New to the console?'} <Link to={isRegister ? '/login' : '/register'}>{isRegister ? 'Sign in' : 'Create a profile'}</Link></p>
-        <p className="auth-note">Access token stays in memory and clears when this page reloads.</p>
       </div>
     </section>
   </main>;

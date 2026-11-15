@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Simulator analysis response 1.1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "run_id", "astronaut_id", "scenario_id", "record_id", "observed_at", "analyzed_at", "analysis_status", "rules", "anomaly", "forecast"],
+  "properties": {
+    "contract_version": {"const": "1.1.0"},
+    "run_id": {"type": "string", "minLength": 1},
+    "astronaut_id": {"type": "string", "minLength": 1},
+    "scenario_id": {"enum": ["normal", "solar_event", "high_co2", "prolonged_isolation"]},
+    "record_id": {"type": "string", "minLength": 1},
+    "observed_at": {"type": "string", "format": "date-time"},
+    "analyzed_at": {"type": "string", "format": "date-time"},
+    "analysis_status": {"enum": ["complete", "partial", "unavailable"]},
+    "rules": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "version", "overall_level", "alerts", "input_quality", "window_size", "window_available"],
+      "properties": {
+        "status": {"const": "available"},
+        "version": {"type": "string"},
+        "overall_level": {"enum": ["normal", "caution", "warning", "critical", null]},
+        "alerts": {"type": "array", "items": {"$ref": "#/$defs/Alert"}},
+        "input_quality": {"$ref": "#/$defs/InputQuality"},
+        "window_size": {"type": "integer", "minimum": 1},
+        "window_available": {"type": "integer", "minimum": 0, "maximum": 8}
+      }
+    },
+    "anomaly": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "reason", "model_id", "model_version", "is_anomaly", "score", "score_meaning"],
+      "properties": {
+        "status": {"$ref": "#/$defs/ComponentStatus"},
+        "reason": {"type": ["string", "null"]},
+        "model_id": {"type": "string"},
+        "model_version": {"type": ["string", "null"]},
+        "is_anomaly": {"type": ["boolean", "null"]},
+        "score": {"type": ["number", "null"]},
+        "score_meaning": {"type": "string"}
+      }
+    },
+    "forecast": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "reason", "model_id", "model_version", "window_required", "window_available", "sample_period_seconds", "horizon_seconds", "target_time", "values"],
+      "properties": {
+        "status": {"$ref": "#/$defs/ComponentStatus"},
+        "reason": {"type": ["string", "null"]},
+        "model_id": {"type": "string"},
+        "model_version": {"type": ["string", "null"]},
+        "window_required": {"type": "integer", "minimum": 1},
+        "window_available": {"type": "integer", "minimum": 0},
+        "sample_period_seconds": {"type": "integer", "minimum": 1},
+        "horizon_seconds": {"type": ["integer", "null"], "minimum": 1},
+        "target_time": {"type": ["string", "null"], "format": "date-time"},
+        "values": {"type": ["object", "null"], "additionalProperties": {"$ref": "#/$defs/PredictedValue"}}
+      }
+    }
+  },
+  "$defs": {
+    "ComponentStatus": {"enum": ["available", "warming_up", "insufficient_data", "unavailable"]},
+    "InputQuality": {
+      "type": "object", "additionalProperties": false,
+      "required": ["valid", "missing", "invalid"],
+      "properties": {"valid": {"type": "integer", "minimum": 0}, "missing": {"type": "integer", "minimum": 0}, "invalid": {"type": "integer", "minimum": 0}}
+    },
+    "Evidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["field", "value", "unit", "quality"],
+      "properties": {
+        "field": {"type": "string"},
+        "value": {"type": ["number", "null"]},
+        "unit": {"type": "string"},
+        "quality": {"enum": ["valid", "missing", "invalid"]}
+      }
+    },
+    "Alert": {
+      "type": "object", "additionalProperties": false,
+      "required": ["code", "severity", "system", "message", "evidence", "procedure_id"],
+      "properties": {
+        "code": {"type": "string"},
+        "severity": {"enum": ["caution", "warning", "critical"]},
+        "system": {"type": "string"},
+        "message": {"type": "string"},
+        "evidence": {"type": "array", "items": {"$ref": "#/$defs/Evidence"}},
+        "procedure_id": {"type": ["string", "null"]}
+      }
+    },
+    "PredictedValue": {
+      "type": "object", "additionalProperties": false,
+      "required": ["value", "unit"],
+      "properties": {"value": {"type": "number"}, "unit": {"type": "string"}}
+    }
+  }
+}

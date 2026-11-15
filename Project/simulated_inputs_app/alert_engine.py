@@ -125,4 +125,3 @@ def generar_triage(medicion, fase_mision=MissionPhase.REPOSO):
     return {"estado_global": estado, "fase_mision": fase_mision.value,
             "alertas_individuales": [a for a in alertas if a["sistema"] not in SISTEMICOS],
             "alertas_sistemicas": [a for a in alertas if a["sistema"] in SISTEMICOS]}
-    }
